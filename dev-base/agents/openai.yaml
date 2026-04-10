@@ -1,0 +1,4 @@
+interface:
+  display_name: "開発ベース"
+  short_description: "実装、バグ修正、リファクタのための基本ワークフロー"
+  default_prompt: "dev-base を使って進める。先に探索し、振る舞いを明確にし、薄い縦切りを一つ通し、必要最小限で検証し、設計上の摩擦は進行を妨げるときだけ整理する。"

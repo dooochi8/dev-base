@@ -1,0 +1,4 @@
+interface:
+  display_name: "Grill Me"
+  short_description: "設計や実装方針を一問ずつ厳しく詰める"
+  default_prompt: "grill-me を使って、コードベースから分かる事実を先に拾い、依存関係の強い論点から一問ずつ問い、各質問には推奨回答も添えて設計を詰める。"

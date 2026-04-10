@@ -1,0 +1,4 @@
+interface:
+  display_name: "TDD"
+  short_description: "red-green-refactor で実装を進める"
+  default_prompt: "tdd を使って、確認すべき振る舞いを一つ定め、失敗するテストを書き、最小実装で通し、緑に戻ってからだけ小さくリファクタする。"

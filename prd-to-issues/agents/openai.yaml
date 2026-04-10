@@ -1,0 +1,4 @@
+interface:
+  display_name: "PRD To Issues"
+  short_description: "PRD を縦切りの issue 群へ分解する"
+  default_prompt: "prd-to-issues を使って、PRD を読み、必要ならコードベースも確認し、薄い縦切りの issue に分解して、依存関係と受け入れ条件つきで整理する。"

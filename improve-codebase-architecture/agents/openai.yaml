@@ -1,0 +1,4 @@
+interface:
+  display_name: "Improve Codebase Architecture"
+  short_description: "設計上の摩擦を見つけ、改善候補を整理する"
+  default_prompt: "improve-codebase-architecture を使って、コードベースを探索し、変更や理解を妨げる設計摩擦を挙げ、deep module の観点で改善候補と優先順位を整理する。"

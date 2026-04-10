@@ -1,0 +1,4 @@
+interface:
+  display_name: "Write A PRD"
+  short_description: "要件と設計判断を整理して PRD を作る"
+  default_prompt: "write-a-prd を使って、問題設定を聞き取り、コードベースを確認し、設計分岐を詰めたうえで、実装に使える日本語の PRD をまとめる。"
