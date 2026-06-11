@@ -1,0 +1,4 @@
+interface:
+  display_name: "リポジトリ把握"
+  short_description: "未知のリポジトリを最短で把握してマップを作る"
+  default_prompt: "orient を使って進める。README と設定ファイルから始め、エントリポイントを特定し、代表的な経路を一本トレースし、テストの実行方法を確認してから、推測と事実を区別したマップにまとめる。"

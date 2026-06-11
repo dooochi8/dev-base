@@ -1,0 +1,4 @@
+interface:
+  display_name: "実行指示書作成"
+  short_description: "実行者が再解釈せず着手できる指示書を書く"
+  default_prompt: "plan-handoff を使って進める。まずコードベースを確認し、観測可能な振る舞いを一文で定め、tracer bullet を最初のスライスとして切り出し、検証コマンドの実在を確かめてから実行指示書をまとめる。"

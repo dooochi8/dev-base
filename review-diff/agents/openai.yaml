@@ -1,0 +1,4 @@
+interface:
+  display_name: "review-diff"
+  short_description: "差分を完了前にバグと単純化の観点でレビューする"
+  default_prompt: "review-diff を使って差分をレビューする。「動くか」ではなく「どんな条件で壊れるか」を探し、正しさ・要件との一致・単純化・テストの4観点で確認し、指摘を重要度付きで報告する。スコープ外の設計改善は別枠に分ける。"

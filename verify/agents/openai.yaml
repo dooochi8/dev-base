@@ -1,0 +1,4 @@
+interface:
+  display_name: "verify"
+  short_description: "実行結果を根拠に完了を確認する検証ゲート"
+  default_prompt: "verify を使って完了を確認する。検証すべき振る舞いを列挙し、テスト・型チェック・lint・実行で検証し、実行した出力だけを根拠に報告する。実行していないことを確認済みと言わない。"

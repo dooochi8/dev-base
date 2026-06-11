@@ -1,0 +1,16 @@
+{
+  "_comment": "Claude Code 用の権限 allowlist テンプレート。内容を確認のうえ .claude/settings.json に配置する。",
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(diff:*)",
+      "Bash(rg:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(./scripts/sync-skills.sh)",
+      "Bash(./scripts/sync-skills.sh --check)"
+    ]
+  }
+}

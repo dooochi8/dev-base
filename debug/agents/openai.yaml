@@ -1,0 +1,4 @@
+interface:
+  display_name: "debug"
+  short_description: "系統的に原因を特定してバグを修正するワークフロー"
+  default_prompt: "debug を使って進める。まず再現手順を確立し、最小化し、仮説を複数列挙してから切り分けで棄却する。一度に複数の変更を入れず、原因を説明できるまで完了としない。修正後は verify で確認する。"
