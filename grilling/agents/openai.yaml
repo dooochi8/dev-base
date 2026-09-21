@@ -1,0 +1,4 @@
+interface:
+  display_name: "Grilling"
+  short_description: "計画や設計の前提・分岐・失敗条件を厳しく詰める"
+  default_prompt: "grilling を使って、確認できる事実を先に調べ、設計ツリーの依存関係が解けた質問を推奨案付きで提示し、共有理解まで計画をストレステストする。"
