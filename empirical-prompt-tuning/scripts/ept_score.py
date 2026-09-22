@@ -17,34 +17,57 @@ def result_score(result):
     return 0.0
 
 
+def validate_scenario(scenario):
+    if not isinstance(scenario, dict):
+        raise ValueError("シナリオはオブジェクトで指定してください")
+    name = scenario.get("name")
+    if not isinstance(name, str) or not name.strip():
+        raise ValueError("シナリオ名は空でない文字列にしてください")
+    requirements = scenario.get("requirements")
+    if not isinstance(requirements, list) or not 3 <= len(requirements) <= 7:
+        raise ValueError("各シナリオに固定要件を3〜7項目指定してください")
+    texts = set()
+    for req in requirements:
+        if not isinstance(req, dict):
+            raise ValueError("各要件はオブジェクトで指定してください")
+        text = req.get("text")
+        if not isinstance(text, str) or not text.strip() or text.strip() in texts:
+            raise ValueError("要件のtextには空でない一意な固定文言を指定してください")
+        texts.add(text.strip())
+        if type(req.get("critical")) is not bool or req.get("result") not in ("ok", "partial", "ng"):
+            raise ValueError("要件にはcriticalの真偽値とok/partial/ngを指定してください")
+    if not any(r["critical"] for r in requirements):
+        raise ValueError("critical要件がありません")
+    for key in ("tool_uses", "duration_ms", "retries", "new_unclear"):
+        if type(scenario.get(key)) is not int or scenario[key] < 0:
+            raise ValueError("実測値の欠測を0として埋めず、非負の整数を指定してください")
+    return [(r["critical"], r["text"]) for r in requirements]
+
+
 def validate_input(data):
     if not isinstance(data, dict) or not isinstance(data.get("iterations"), list) or not data["iterations"]:
         raise ValueError("iterationsには実行結果を1回以上指定してください")
     baseline = None
     for iteration in data["iterations"]:
-        scenarios = iteration.get("scenarios", [])
-        if len(scenarios) < 2:
+        if not isinstance(iteration, dict):
+            raise ValueError("各回はオブジェクトで指定してください")
+        scenarios = iteration.get("scenarios")
+        if not isinstance(scenarios, list) or len(scenarios) < 2:
             raise ValueError("各回に2本以上のシナリオが必要です")
         signature = {}
         for scenario in scenarios:
-            name = scenario.get("name")
-            if not isinstance(name, str) or not name or name in signature:
-                raise ValueError("シナリオ名は空でない一意な文字列にしてください")
-            requirements = scenario.get("requirements", [])
-            if not 3 <= len(requirements) <= 7:
-                raise ValueError("各シナリオに固定要件を3〜7項目指定してください")
-            if not any(r.get("critical") is True for r in requirements):
-                raise ValueError("critical要件がありません")
-            for req in requirements:
-                if type(req.get("critical")) is not bool or req.get("result") not in {"ok", "partial", "ng"}:
-                    raise ValueError("要件にはcriticalの真偽値とok/partial/ngを指定してください")
-            for key in ("tool_uses", "duration_ms", "retries", "new_unclear"):
-                if type(scenario.get(key)) is not int or scenario[key] < 0:
-                    raise ValueError("実測値の欠測を0として埋めず、非負の整数を指定してください")
-            signature[name] = [(r["critical"], r.get("text")) for r in requirements]
+            fixed_requirements = validate_scenario(scenario)
+            name = scenario["name"].strip()
+            if name in signature:
+                raise ValueError("シナリオ名は一意にしてください")
+            signature[name] = fixed_requirements
         if baseline is not None and signature != baseline:
             raise ValueError("シナリオと固定要件が前回から変わっています")
         baseline = signature
+    if "holdout" in data:
+        validate_scenario(data["holdout"])
+        if data["holdout"]["name"].strip() in baseline:
+            raise ValueError("holdoutには通常評価で使っていないシナリオ名を指定してください")
 
 
 def scenario_metrics(scenario):
@@ -78,6 +101,19 @@ def iteration_summary(iteration):
         "duration": duration,
         "unclear": unclear,
         "success": count >= 2 and all(scenario_metrics(s)[0] for s in scenarios),
+    }
+
+
+def holdout_summary(final_iteration, scenario):
+    success, accuracy = scenario_metrics(scenario)
+    reference = iteration_summary(final_iteration)["accuracy"]
+    drop = reference - accuracy
+    return {
+        "accuracy": accuracy,
+        "reference_accuracy": reference,
+        "drop": drop,
+        "success": success,
+        "passed": success and drop < 15.0,
     }
 
 
@@ -136,38 +172,49 @@ def main():
                 )
             )
 
+    holdout_ok = True
+    if "holdout" in data:
+        holdout = holdout_summary(iterations[-1], data["holdout"])
+        holdout_ok = holdout["passed"]
+        print()
+        print("## hold-out 判定")
+        print()
+        print("| シナリオ | critical全件達成 | 精度 | 直近通常平均 | 低下pt | 判定 |")
+        print("|---|---|---:|---:|---:|---|")
+        print("| %s | %s | %s | %s | %.1f | %s |" % (
+            data["holdout"]["name"], mark(holdout["success"]), pct(holdout["accuracy"]),
+            pct(holdout["reference_accuracy"]), holdout["drop"], mark(holdout_ok)))
+
     print()
     print("## 収束判定")
     print()
+    print("| 条件 | 判定 |")
+    print("|---|---|")
+    converged = False
     if len(iterations) < 2:
-        print("| 条件 | 判定 |")
-        print("|---|---|")
         print("| 新規不明瞭点0件 | × |")
         print("| critical要件を全件達成 | 未判定 |")
         print("| 精度悪化なし・改善+3pt以下 | × |")
         print("| steps±10% | × |")
         print("| duration±15% | × |")
         print("| 連続クリア回数 | 0/2 |")
-        print("| 総合判定 | × |")
-        return
-
-    summaries = [iteration_summary(iteration) for iteration in iterations]
-    checks, latest_clear = transition_clear(summaries[-2], summaries[-1])
-    consecutive = 0
-    position = len(summaries) - 1
-    while position > 0 and consecutive < 2:
-        _, ok = transition_clear(summaries[position - 1], summaries[position])
-        if not ok:
-            break
-        consecutive += 1
-        position -= 1
-
-    print("| 条件 | 判定 |")
-    print("|---|---|")
-    for label in ["critical要件を全件達成", "新規不明瞭点0件", "精度悪化なし・改善+3pt以下", "steps±10%", "duration±15%"]:
-        print("| %s | %s |" % (label, mark(checks[label])))
-    print("| 連続クリア回数 | %s/2 |" % consecutive)
-    print("| 総合判定 | %s |" % mark(latest_clear and consecutive >= 2))
+    else:
+        summaries = [iteration_summary(iteration) for iteration in iterations]
+        checks, latest_clear = transition_clear(summaries[-2], summaries[-1])
+        consecutive = 0
+        position = len(summaries) - 1
+        while position > 0 and consecutive < 2:
+            _, ok = transition_clear(summaries[position - 1], summaries[position])
+            if not ok:
+                break
+            consecutive += 1
+            position -= 1
+        for label in ["critical要件を全件達成", "新規不明瞭点0件", "精度悪化なし・改善+3pt以下", "steps±10%", "duration±15%"]:
+            print("| %s | %s |" % (label, mark(checks[label])))
+        print("| 連続クリア回数 | %s/2 |" % consecutive)
+        converged = latest_clear and consecutive >= 2
+    print("| hold-out | %s |" % (mark(holdout_ok) if "holdout" in data else "未実施（重要なskillでは必須）"))
+    print("| 総合判定 | %s |" % mark(converged and holdout_ok))
 
 
 if __name__ == "__main__":
