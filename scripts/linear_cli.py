@@ -17,7 +17,9 @@ FIELDS = """id identifier title description url priority
     state { id name type } parent { id identifier } labels { nodes { id name } }"""
 OPERATIONS = {
     "teams": "query($after:String){teams(first:100,after:$after){nodes{id name key} pageInfo{hasNextPage endCursor}}}",
-    "projects": "query($after:String){projects(first:100,after:$after){nodes{id name teams{nodes{id}}} pageInfo{hasNextPage endCursor}}}",
+    "projects": "query($after:String){projects(first:100,after:$after,includeArchived:true){nodes{id name teams{nodes{id}}} pageInfo{hasNextPage endCursor}}}",
+    "project_create": "mutation($input:ProjectCreateInput!){projectCreate(input:$input){success project{id}}}",
+    "project_get": "query($id:String!){project(id:$id){id name url teams{nodes{id}}}}",
     "scope": "query($team:String!,$project:String!){team(id:$team){id name key} project(id:$project){id name teams{nodes{id}}}}",
     "states": "query($team:ID!,$after:String){workflowStates(first:100,after:$after,filter:{team:{id:{eq:$team}}}){nodes{id name type} pageInfo{hasNextPage endCursor}}}",
     "labels": "query($after:String){issueLabels(first:100,after:$after){nodes{id name team{id}} pageInfo{hasNextPage endCursor}}}",
@@ -130,6 +132,38 @@ def initialize(team_id, project_id, root=ROOT):
     return {"configured": str(path), **data}
 
 
+def create_project(team_id, name, confirmed, root=ROOT):
+    if not confirmed:
+        raise LinearError("新規Project作成の依頼を確認してから --confirm-create を指定してください")
+    if (root / ".linear.json").exists() or (root / ".linear.json").is_symlink():
+        raise LinearError("接続済みリポジトリからProjectを新規作成しません。未接続の新規コピーを使ってください")
+    try:
+        UUID(team_id)
+    except (ValueError, TypeError, AttributeError):
+        raise LinearError("team-idには実在するUUIDを指定してください") from None
+    name = name.strip()
+    if not name or len(name) > 80 or any(ord(c) < 32 for c in name):
+        raise LinearError("Project名は空でない80文字以内の1行で指定してください")
+    teams = pages("teams", "teams")
+    if len([team for team in teams if team.get("id") == team_id]) != 1:
+        raise LinearError("指定Teamを一意に確認できません")
+    projects = pages("projects", "projects")
+    duplicates = [project for project in projects
+                  if project["name"].strip().casefold() == name.casefold()
+                  and team_id in [team["id"] for team in project["teams"]["nodes"]]]
+    if duplicates:
+        raise LinearError("同名Projectがあります。discoverでID・所属を確認し、既存利用か別名かを決めてください")
+    result = request("project_create", {"input": {"name": name, "teamIds": [team_id]}}).get("projectCreate")
+    if not result or result.get("success") is not True or not (result.get("project") or {}).get("id"):
+        raise LinearError("Project作成結果が未確認です。再送せずdiscoverで確認してください")
+    identifier = result["project"]["id"]
+    project = request("project_get", {"id": identifier}).get("project")
+    if (not project or project.get("id") != identifier or project.get("name") != name
+            or [team["id"] for team in project.get("teams", {}).get("nodes", [])] != [team_id]):
+        raise LinearError("Projectの読み戻しが一致しません。再送せずdiscoverで確認してください")
+    return {"success": True, "readBack": project, "configured": False}
+
+
 def get_issue(identifier, config):
     issue = request("get", {"id": identifier}).get("issue")
     if (not issue or (issue.get("team") or {}).get("id") != config["teamId"]
@@ -219,6 +253,10 @@ def parser():
     cli = argparse.ArgumentParser(description="Project設定を使うLinear CLI。削除操作なし。")
     commands = cli.add_subparsers(dest="command", required=True)
     commands.add_parser("discover", help="利用可能なTeam/ProjectのIDを読み取る")
+    project = commands.add_parser("project-create", help="未接続の新規コピーからProjectを作成（明示確認必須）")
+    project.add_argument("--team-id", required=True)
+    project.add_argument("--name", required=True)
+    project.add_argument("--confirm-create", action="store_true")
     init = commands.add_parser("init", help="既存Team/Projectに接続（外部作成なし）")
     init.add_argument("--team-id", required=True)
     init.add_argument("--project-id", required=True)
@@ -256,6 +294,8 @@ def execute(args, root=ROOT):
         return {"teams": pages("teams", "teams"), "projects": pages("projects", "projects")}
     if args.command == "init":
         return initialize(args.team_id, args.project_id, root)
+    if args.command == "project-create":
+        return create_project(args.team_id, args.name, args.confirm_create, root)
     config = load_config(root)
     if args.command == "doctor":
         return {"ok": True, **verify_scope(config), "states": pages("states", "workflowStates", {"team": config["teamId"]}), "deleteCommand": False}

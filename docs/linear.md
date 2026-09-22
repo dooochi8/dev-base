@@ -14,6 +14,8 @@ Python 3.9以降の標準ライブラリだけで動作します。認証は `LI
 
 `discover` は参照可能なTeamとProjectを全ページ取得します。名前を確認してUUIDを選んでください。`init` は所属を読み取って検証し、既存の `.linear.json` があれば上書きせず停止します。キーは保存しません。接続先はリポジトリルート基準で読み、実行するカレントディレクトリには依存しません。
 
+新しいProjectの作成を依頼された場合は、未接続の新規コピーで `./scripts/linear project-create --team-id TEAM_UUID --name '表示名' --confirm-create` を使えます。参照可能なTeam・アーカイブを含む同名Projectを確認してから作成し、ID・名前・所属を再取得します。自動接続はしないので、返されたIDで `init` してください。既存設定がある場合や同一Teamに同名がある場合は書込せず停止します。作成応答が不明なら自動再送せず `discover` で確認します。
+
 `.linear.example.json` は書式例です。実際の `.linear.json` はGit管理外に置き、新しいプロジェクトで再設定します。APIキーをコマンド引数・PR・Issue・ノートに貼り付けないでください。
 
 ## 操作
