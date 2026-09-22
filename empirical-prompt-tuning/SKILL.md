@@ -101,8 +101,10 @@ steps が他シナリオ比で 3 倍以上なら、自己完結性が低いサ�
 
 次の JSON を作り、スキル内スクリプトで集計する。精度計算と収束判定は手計算しない。
 
+各要件の `text` にチェックリストの固定文言を必ず入れる。空欄・同一シナリオ内の重複は禁止。反復間で文言・順序・critical指定を変えない。要件を変更する場合は、別のベースラインとして評価をやり直す。
+
 ```json
-{"iterations":[{"scenarios":[{"name":"A","requirements":[{"critical":true,"result":"ok"},{"critical":false,"result":"partial"},{"critical":false,"result":"ok"}],"tool_uses":4,"duration_ms":20000,"retries":0,"new_unclear":2},{"name":"B","requirements":[{"critical":true,"result":"ok"},{"critical":false,"result":"ok"},{"critical":false,"result":"ok"}],"tool_uses":3,"duration_ms":15000,"retries":0,"new_unclear":0}]}]}
+{"iterations":[{"scenarios":[{"name":"A","requirements":[{"text":"未実施を成功にしない","critical":true,"result":"ok"},{"text":"変更内容を説明する","critical":false,"result":"partial"},{"text":"草案を保存する","critical":false,"result":"ok"}],"tool_uses":4,"duration_ms":20000,"retries":0,"new_unclear":2},{"name":"B","requirements":[{"text":"失敗を成功にしない","critical":true,"result":"ok"},{"text":"未解決事項を示す","critical":false,"result":"ok"},{"text":"外部に投稿しない","critical":false,"result":"ok"}],"tool_uses":3,"duration_ms":15000,"retries":0,"new_unclear":0}]}]}
 ```
 
 ```sh
@@ -130,7 +132,9 @@ CodexとClaudeのどちらから読んでも、実際に読んだSKILL.mdのフ�
 
 前提として各回2本以上の同じシナリオ・同じ固定要件を評価し、すべてのcritical要件を満たすこと。失敗が安定しているだけの結果を収束にしない。
 
-重要な skill は最後に hold-out シナリオ 1 本を追加して確認する。hold-out 精度が直近平均から 15 ポイント以上落ちたら過適合として扱う。
+重要な skill は最後に、通常評価では使っていない hold-out シナリオ 1 本を確認する。`iterations` 内には追加せず、同じJSONのトップレベルへ `holdout` として指定する。通常シナリオと同じ必須フィールドを持たせ、別の名前にする。具体例は `references/example-run.md` を参照。
+
+スクリプトは通常評価だけで収束を計算し、hold-out 精度を最終iterationの通常シナリオ平均と比較する。15ポイント以上の低下は過適合、critical未達も不合格。hold-outを指定した場合の総合判定は、通常評価の収束とhold-out合格の両方を必要とする。未指定時は「未実施」と表示するため、重要なskillでは総合判定だけを見て完了にしない。
 
 ## 提示フォーマット
 

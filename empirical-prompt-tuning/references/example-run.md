@@ -40,11 +40,11 @@ fixtureの差分と失敗した検証ログを渡し、未解決事項を含むP
         {
           "name": "A",
           "requirements": [
-            {"critical": true, "result": "ok"},
-            {"critical": false, "result": "ok"},
-            {"critical": false, "result": "partial"},
-            {"critical": false, "result": "ok"},
-            {"critical": false, "result": "ok"}
+            {"text": "実行済みの検証だけを成功として記載する", "critical": true, "result": "ok"},
+            {"text": "outputs/pr-body.mdに草案を置く", "critical": false, "result": "ok"},
+            {"text": "変更後の振る舞いを説明する", "critical": false, "result": "partial"},
+            {"text": "元の差分とログを変更しない", "critical": false, "result": "ok"},
+            {"text": "実行していない検証は未実施とする", "critical": false, "result": "ok"}
           ],
           "tool_uses": 4,
           "duration_ms": 20000,
@@ -54,11 +54,11 @@ fixtureの差分と失敗した検証ログを渡し、未解決事項を含むP
         {
           "name": "B",
           "requirements": [
-            {"critical": true, "result": "ng"},
-            {"critical": false, "result": "ng"},
-            {"critical": false, "result": "ok"},
-            {"critical": false, "result": "ok"},
-            {"critical": false, "result": "partial"}
+            {"text": "失敗した検証を成功と記載しない", "critical": true, "result": "ng"},
+            {"text": "outputs/pr-body.mdに草案を置く", "critical": false, "result": "ng"},
+            {"text": "失敗内容と未解決事項を示す", "critical": false, "result": "ok"},
+            {"text": "再実行していない検証を捏造しない", "critical": false, "result": "ok"},
+            {"text": "外部へ投稿しない", "critical": false, "result": "partial"}
           ],
           "tool_uses": 10,
           "duration_ms": 45000,
@@ -70,6 +70,29 @@ fixtureの差分と失敗した検証ログを渡し、未解決事項を含むP
   ]
 }
 ```
+
+## hold-out の指定
+
+通常評価が収束した後、未使用のシナリオを別実行者で評価し、次の `holdout` キーを既存JSONのトップレベルへ追加する。以下は形式を示す架空の値であり、実測結果ではない。`iterations` のシナリオ・固定要件は変更しない。
+
+```json
+{
+  "holdout": {
+    "name": "C: 検証結果が一部未取得",
+    "requirements": [
+      {"text": "未取得を成功と記載しない", "critical": true, "result": "ok"},
+      {"text": "取得済みと未取得を区別する", "critical": false, "result": "ok"},
+      {"text": "outputs/pr-body.mdに草案を置く", "critical": false, "result": "ok"}
+    ],
+    "tool_uses": 5,
+    "duration_ms": 22000,
+    "retries": 0,
+    "new_unclear": 0
+  }
+}
+```
+
+同じ集計コマンドで、最終iterationの通常シナリオ平均からの低下とcritical達成を確認する。15ポイント以上の低下、またはcritical未達なら、通常評価が収束していても総合判定は不合格になる。
 
 ## Iteration 1 記録例
 
