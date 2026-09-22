@@ -11,15 +11,27 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 class TemplateCopyTests(unittest.TestCase):
-    def test_skill_names_descriptions_and_resources(self):
-        entries = sorted(ROOT.glob("*/SKILL.md"))
-        self.assertEqual(len(entries), 20)
+    def assert_skill_inventory(self, root):
+        entries = sorted(root.glob("*/SKILL.md"))
+        self.assertTrue(entries, "正本スキルがありません")
+        names = {entry.parent.name for entry in entries}
+        for client in (".agents/skills", ".claude/skills"):
+            self.assertEqual({entry.name for entry in (root / client).iterdir()}, names, client)
         for entry in entries:
             text = entry.read_text()
             self.assertTrue(text.startswith("---\n"), str(entry))
             header = text.split("---", 2)[1]
             self.assertRegex(header, r"(?m)^name: " + re.escape(entry.parent.name) + r"$")
             self.assertRegex(header, r"(?m)^description: \S.+$")
+            codex = root / ".agents/skills" / entry.parent.name
+            self.assertTrue(codex.is_symlink(), str(codex))
+            self.assertEqual(codex.resolve(), entry.parent.resolve())
+            claude = root / ".claude/skills" / entry.parent.name / "SKILL.md"
+            self.assertTrue(claude.is_file(), str(claude))
+            self.assertEqual(claude.read_text(), text)
+
+    def test_skill_names_descriptions_and_resources(self):
+        self.assert_skill_inventory(ROOT)
         resources = ["grilling/references/upstream.md", "grilling/evals/evals.json",
                      "empirical-prompt-tuning/scripts/ept_score.py",
                      "empirical-prompt-tuning/references/example-run.md",
@@ -34,6 +46,46 @@ class TemplateCopyTests(unittest.TestCase):
                      "project-start/references/connections.md"]
         for resource in resources:
             self.assertTrue((ROOT / resource).is_file(), resource)
+
+    def test_copied_template_accepts_additional_synced_skill(self):
+        with tempfile.TemporaryDirectory() as folder:
+            target = Path(folder) / "new project"
+            shutil.copytree(ROOT, target, symlinks=True,
+                            ignore=shutil.ignore_patterns(".git", ".linear.json", ".env*", ".linear_token", "__pycache__", "*.pyc"))
+            custom = target / "project-specific"
+            custom.mkdir()
+            (custom / "SKILL.md").write_text("---\nname: project-specific\ndescription: プロジェクト固有の検証用スキル。\n---\n\n# 検証用\n")
+            sync = subprocess.run(["bash", str(target / "scripts/sync-skills.sh")], cwd=folder, capture_output=True, text=True, timeout=15)
+            self.assertEqual(sync.returncode, 0, sync.stdout + sync.stderr)
+            check = subprocess.run(["bash", str(target / "scripts/sync-skills.sh"), "--check"], cwd=folder, capture_output=True, text=True, timeout=15)
+            self.assertEqual(check.returncode, 0, check.stdout + check.stderr)
+            self.assert_skill_inventory(target)
+
+    def test_inventory_rejects_missing_and_orphan_client_entries(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            canonical = root / "sample"
+            canonical.mkdir()
+            (canonical / "SKILL.md").write_text("---\nname: sample\ndescription: テスト用スキル。\n---\n")
+            codex = root / ".agents/skills/sample"
+            codex.parent.mkdir(parents=True)
+            codex.symlink_to("../../sample")
+            claude = root / ".claude/skills/sample"
+            shutil.copytree(canonical, claude)
+            self.assert_skill_inventory(root)
+            for client in (".agents/skills", ".claude/skills"):
+                orphan = root / client / "orphan"
+                orphan.mkdir()
+                with self.subTest(client=client), self.assertRaises(AssertionError):
+                    self.assert_skill_inventory(root)
+                orphan.rmdir()
+            codex.unlink()
+            with self.assertRaises(AssertionError):
+                self.assert_skill_inventory(root)
+            codex.symlink_to("../../sample")
+            (claude / "SKILL.md").unlink()
+            with self.assertRaises(AssertionError):
+                self.assert_skill_inventory(root)
 
     def test_smart_docs_package_is_portable(self):
         package = ROOT / "smart-docs"
