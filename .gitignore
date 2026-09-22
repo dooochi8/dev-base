@@ -1,0 +1,14 @@
+# Authentication and per-project bindings must not propagate to a new project.
+.env
+.env.*
+!.env.example
+.linear.json
+.linear_token
+__pycache__/
+*.py[cod]
+.DS_Store
+node_modules/
+dist/
+coverage/
+.venv/
+tmp/

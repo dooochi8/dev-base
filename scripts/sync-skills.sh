@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# トップレベルの <skill>/ (単一ソース) から .claude/skills/ を生成する。
+# トップレベルの <skill>/ を正本として、Claudeの生成物とCodexのリンクを同期する。
 # agents/ (Codex 固有) はコピーしない。
 # 使い方:
 #   ./scripts/sync-skills.sh          # 同期を実行
@@ -10,6 +10,12 @@ cd "$(dirname "$0")/.."
 
 MODE="${1:-sync}"
 DEST=".claude/skills"
+CODEX_DEST=".agents/skills"
+shopt -s nullglob
+case "$MODE" in
+  sync|--check) ;;
+  *) echo "usage: $0 [--check]" >&2; exit 2 ;;
+esac
 
 # SKILL.md を持つトップレベルディレクトリをスキルとみなす
 skills=()
@@ -30,17 +36,36 @@ if [[ "$MODE" == "--check" ]]; then
       echo "drift: $name"
       status=1
     fi
+    if [[ ! -L "$CODEX_DEST/$name" ]] || [[ "$(readlink "$CODEX_DEST/$name")" != "../../$name" ]] || [[ ! -f "$CODEX_DEST/$name/SKILL.md" ]]; then
+      echo "drift: $CODEX_DEST/$name"
+      status=1
+    fi
   done
   # ソースに存在しない生成物の検出
-  for dir in "$DEST"/*/; do
+  for dir in "$DEST"/* "$CODEX_DEST"/*; do
     name="$(basename "$dir")"
-    [[ -f "$name/SKILL.md" ]] || { echo "orphan: $DEST/$name"; status=1; }
+    [[ -f "$name/SKILL.md" ]] || { echo "orphan: $dir"; status=1; }
   done
   [[ $status -eq 0 ]] && echo "OK: drift なし"
   exit $status
 fi
 
-mkdir -p "$DEST"
+mkdir -p "$DEST" "$CODEX_DEST"
+
+# Codex側はリンクだけを管理する。利用者の実ディレクトリを上書きしない。
+for entry in "$CODEX_DEST"/*; do
+  if [[ ! -L "$entry" ]]; then
+    echo "conflict: $entry は管理対象のリンクではありません" >&2
+    exit 1
+  fi
+done
+for entry in "$CODEX_DEST"/*; do
+  name="$(basename "$entry")"
+  if [[ ! -f "$name/SKILL.md" ]]; then
+    rm "$entry"
+    echo "removed link: $entry"
+  fi
+done
 
 # ソースに存在しない生成物を削除
 for dir in "$DEST"/*/; do
@@ -62,7 +87,9 @@ for name in "${skills[@]}"; do
       cp "$f" "$0/$f"
     done
   ' "../$DEST/$name" {} +)
+  if [[ -L "$CODEX_DEST/$name" ]]; then rm "$CODEX_DEST/$name"; fi
+  ln -s "../../$name" "$CODEX_DEST/$name"
   echo "synced: $name"
 done
 
-echo "完了: ${#skills[@]} スキルを $DEST へ同期しました"
+echo "完了: ${#skills[@]} スキルを $DEST と $CODEX_DEST へ同期しました"

@@ -1,6 +1,8 @@
 # dev-base
 
-日本語で使える開発用スキル集です。Codex 向けのスキルフォルダと、Claude Code 向けの `.claude/skills` を同じリポジトリ内で管理しています。
+新しい開発で複製して使う、日本語の開発ベースです。共通ルール、15本のスキル、Linear用コマンドとIssueテンプレートを同梱しています。アプリの技術スタックやLinearのProjectは複製先で設定します。
+
+まず [新しいプロジェクトの始め方](docs/project-setup.md) を読み、`./scripts/sync-skills.sh --check` と `./scripts/linear --help` で入口を確認してください。Linear操作にはPython 3.9以降とAPIキーが必要です。個人のVaultへの参照や追加Pythonパッケージは不要です。
 
 ## 含まれるスキル
 
@@ -10,6 +12,7 @@
 |--------|------|
 | `orient` | 未知のリポジトリを最短で把握し、以降の作業の土台になるマップを作る |
 | `grill-me` | 設計案・要件・方針を一問ずつ厳しく詰め、未解決の前提をなくす |
+| `grilling` | 独立した質問をラウンドにまとめ、前提・依存・失敗条件を詰める |
 | `write-a-prd` | 実装前に PRD を整理して書く |
 | `prd-to-issues` | PRD を薄い縦切りの issue 群に分解する |
 | `plan-handoff` | 計画者が実行者へ渡す実行指示書を作る |
@@ -19,10 +22,28 @@
 | `verify` | 変更後に実際に動かし、出力を根拠に完了を判断する |
 | `review-diff` | 差分をレビューし、バグと単純化の観点で指摘する |
 | `improve-codebase-architecture` | 設計上の摩擦を見つけて改善案を整理する |
+| `show-me` | 処理・構造・設計案を図や小さなHTMLで説明する |
+| `empirical-prompt-tuning` | 指示・Skillを独立実行で評価し、固定要件に基づいて改善する |
+| `linear-workflow` | Linearの接続・Issue・実装結果を管理する |
+
+既存のテスト・デバッグ・差分レビューに加えて上記4本を収録しています。特定のクラウドやフレームワークのスキルは、複製先の技術選定後に必要なものを追加します。導入元と移植内容は [Skill sources](docs/skill-sources.md) を参照してください。
+
+## Linear
+
+プロジェクトごとの接続情報はGit管理外の `.linear.json` に保存し、APIキーは `LINEAR_API_KEY` またはユーザー領域の `.linear_token` から読みます。
+
+```sh
+./scripts/linear discover
+./scripts/linear init --team-id TEAM_UUID --project-id PROJECT_UUID
+./scripts/linear doctor
+./scripts/linear list
+```
+
+一覧・詳細・作成・更新・コメント・取消に対応します。削除コマンドはありません。詳細は [Linear運用](docs/linear.md)、本文例は [Issueテンプレート](templates/linear-issue.md) を参照してください。
 
 ## モデル分業の前提
 
-このリポジトリのスキルは「計画と実行の分業」を前提に設計されています。
+計画と実行を分ける場合にも、一つの環境で完了する場合にも使えます。モデルやツールの引継ぎは必須ではありません。
 
 - **計画・レビュー**（高性能モデル）: `orient` / `grill-me` / `write-a-prd` / `prd-to-issues` / `plan-handoff` / `review-diff`
 - **実行**（軽量モデル）: `dev-base` / `tdd` / `debug` / `verify`
@@ -35,6 +56,8 @@
   **単一ソース**。スキルの編集は必ずトップレベルの各フォルダで行います。各フォルダに `SKILL.md` があり、必要に応じて `agents/openai.yaml` を含みます。
 - `.claude/skills/`
   Claude Code 向けのスキル配置。`./scripts/sync-skills.sh` による**生成物**であり、手で編集しません。
+- `.agents/skills/`
+  Codex が発見するトップレベル正本への相対リンク。同じスクリプトで管理します。
 
 ## 使い方
 
@@ -44,6 +67,7 @@
 
 ```sh
 ./scripts/sync-skills.sh
+./scripts/sync-skills.sh --check
 ```
 
 `.claude/skills/` を直接編集した内容はスクリプト実行時に上書きされます。
@@ -54,6 +78,7 @@
 
 - `/orient`
 - `/grill-me`
+- `/grilling`
 - `/write-a-prd`
 - `/prd-to-issues`
 - `/plan-handoff`
@@ -63,10 +88,13 @@
 - `/verify`
 - `/review-diff`
 - `/improve-codebase-architecture`
+- `/show-me`
+- `/empirical-prompt-tuning`
+- `/linear-workflow`
 
 ### Codex
 
-プロンプトの中でスキル名を明示して使います。
+このリポジトリを開くと `.agents/skills/` から発見できます。`$dev-base` 等で明示して使えます。他のアプリのリポジトリには自動でグローバル配布しません。
 
 例:
 
