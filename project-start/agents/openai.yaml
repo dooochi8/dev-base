@@ -1,0 +1,4 @@
+interface:
+  display_name: "新プロジェクトを立ち上げる"
+  short_description: "GitHub・Linear・開発スキルを揃えて新規開発を始める"
+  default_prompt: "$project-start を使って新しいプロジェクトの開発環境を一式準備して。"

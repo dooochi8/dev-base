@@ -25,9 +25,12 @@
 
 ## スキルの選び方
 
+- 新規立ち上げ: project-start（開発ベース・GitHub・Linear・スキル一式）。既存アプリの実装やスキル追加だけでは実行しない。
 - 把握: orient / 要件: grill-me（一問ずつ）, grilling（独立質問をラウンドで）, write-a-prd / 分解: prd-to-issues / 受け渡し: plan-handoff
+- 実装前の計画レビュー: plan-eng-review（技術設計）, plan-design-review（画面・導線）。レビュー依頼だけでコードや仕様を書き換えない。
 - 実装: dev-base, tdd / デバッグ: debug / 確認: verify, review-diff / 設計改善: improve-codebase-architecture
-- 説明の図解: show-me / 指示の独立評価: empirical-prompt-tuning / 開発Issue: linear-workflow
+- 説明の図解: show-me / コードに基づく文書化: smart-docs / 指示の独立評価: empirical-prompt-tuning / 開発Issue: linear-workflow
+- 利用者向けUIの仕上げ・操作感・アニメーション: emil-design-eng。既存のデザインシステムとアクセシビリティを守る。
 - スキルの追加・コピー依頼を、そのスキルの実行依頼と混同しない。必要なものだけ選び、全スキルを毎回実行しない。
 
 連鎖の具体例は `docs/workflows.md` を参照。
