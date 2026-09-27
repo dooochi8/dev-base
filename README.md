@@ -1,6 +1,8 @@
 # dev-base
 
-新しい開発で複製して使う、日本語の開発ベースです。共通ルール、20本のスキル、Linear用コマンドとIssueテンプレートを同梱しています。アプリの技術スタックやLinearのProjectは複製先で設定します。
+新しい開発で複製して使う、日本語の開発ベースです。共通ルール、22本のスキル、Linear用コマンドとIssueテンプレートを同梱しています。Codexの既定はGPT-6 Astraです。アプリの技術スタックやLinearのProjectは複製先で設定します。
+
+[ECC](https://github.com/affaan-m/ECC)の調査・セキュリティ・検証・作業再開の手法を、既存のスキルへ統合しています。[採用範囲と出典](docs/ecc-adoption.md) / [GPT-6 Astraの設定と使い方](docs/codex.md)を参照してください。
 
 一式まとめて始める場合は [`project-start`](project-start/SKILL.md) に「新しいプロジェクト名と目的」を渡してください。ローカル複製、GitHub、Linear、初期Issueと検証を扱い、未確定の外部作成先だけ確認します。
 
@@ -14,6 +16,7 @@
 |--------|------|
 | `project-start` | 開発ベース・GitHub・Linear・スキル一式を揃えて新規プロジェクトを始める |
 | `orient` | 未知のリポジトリを最短で把握し、以降の作業の土台になるマップを作る |
+| `search-first` | 新しい依存・連携・共通機能の導入前に、既存実装と候補を比較する |
 | `grill-me` | 設計案・要件・方針を一問ずつ厳しく詰め、未解決の前提をなくす |
 | `grilling` | 独立した質問をラウンドにまとめ、前提・依存・失敗条件を詰める |
 | `write-a-prd` | 実装前に PRD を整理して書く |
@@ -26,6 +29,7 @@
 | `debug` | 系統的に原因を特定して直す（再現→最小化→仮説→切り分け） |
 | `verify` | 変更後に実際に動かし、出力を根拠に完了を判断する |
 | `review-diff` | 差分をレビューし、バグと単純化の観点で指摘する |
+| `security-review` | 認証・認可・外部入力・秘密情報・決済の変更を信頼境界から確認する |
 | `improve-codebase-architecture` | 設計上の摩擦を見つけて改善案を整理する |
 | `show-me` | 処理・構造・設計案を図や小さなHTMLで説明する |
 | `smart-docs` | コードを根拠に日本語の設計文書・開発ガイド・構成図を作成する |
@@ -50,12 +54,11 @@
 
 一覧・詳細・作成・更新・コメント・取消に対応します。削除コマンドはありません。詳細は [Linear運用](docs/linear.md)、本文例は [Issueテンプレート](templates/linear-issue.md) を参照してください。
 
-## モデル分業の前提
+## GPT-6 Astraを中心に進める
 
-計画と実行を分ける場合にも、一つの環境で完了する場合にも使えます。モデルやツールの引継ぎは必須ではありません。
+`.codex/config.toml` は `gpt-6-astra` / `xhigh` を既定にし、`low` / `medium` / `high` / `xhigh` / `max` の5段階の切替方法を用意します。ECCの手順は全段階で共通です。アプリやCLIで明示したモデル選択、利用可否、信頼・管理設定については [設定ガイド](docs/codex.md) を確認してください。
 
-- **計画・レビュー**（高性能モデル）: `orient` / `grill-me` / `write-a-prd` / `prd-to-issues` / `plan-handoff` / `review-diff`
-- **実行**（軽量モデル）: `dev-base` / `tdd` / `debug` / `verify`
+計画・実装・検証を同じ環境で完了できます。実際に担当を分ける場合だけ `plan-handoff` を使い、独立したレビューが必要な場合だけ追加の担当を使います。
 
 スキルの連鎖パターン（小さな修正・バグ修正・中規模以上の機能開発）の詳細は `docs/workflows.md` を参照してください。
 
@@ -67,6 +70,8 @@
   Claude Code 向けのスキル配置。`./scripts/sync-skills.sh` による**生成物**であり、手で編集しません。
 - `.agents/skills/`
   Codex が発見するトップレベル正本への相対リンク。同じスクリプトで管理します。
+- `.codex/config.toml`
+  プロジェクトのモデル・推論設定。グローバル設定や権限、MCP、hooksは同梱しません。
 
 ## 使い方
 
@@ -86,6 +91,8 @@
 このリポジトリを開いた状態で、スラッシュコマンドで呼び出せます。
 
 - `/orient`
+- `/search-first`
+- `/security-review`
 - `/project-start`
 - `/grill-me`
 - `/grilling`
@@ -125,4 +132,4 @@
 
 - すべてのスキルの入口は日本語です。上流の原文を保持する参照資料には英語を含みます。
 - Claude Code 用と Codex 用で、呼び出し名はできるだけ揃えています。
-- リポジトリ全体の設計方針は `CLAUDE.md` と `docs/harness-plan.md` を参照してください。
+- 現在の設計方針は `AGENTS.md` と `docs/codex.md` を参照してください。`docs/harness-plan.md` は初期設計の履歴です。
