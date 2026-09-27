@@ -6,12 +6,23 @@ dev-baseのCodex既定は `.codex/config.toml` の `gpt-6-astra` / `xhigh`。計
 
 信頼済みプロジェクトではCodexが `.codex/config.toml` を読み込む。信頼状態や組織の管理設定によっては適用されない。CLIの明示指定やアプリで選択したモデル・推論設定がある場合はそちらを確認する。既存のチャットのモデルを、このファイルの追加だけで変更したとは扱わない。
 
-```sh
-# プロジェクト既定
-codex
-```
+Astraの `low` / `medium` / `high` / `xhigh` / `max` の5段階に対応する。ECC由来の手順・スキル・完了条件は全段階で共通とし、ユーザーが明示した推論量を尊重する。既定の `xhigh` に戻すためだけの設定変更や再起動は行わない。
 
-アプリでは利用できるモデル・推論量を画面から選ぶ。軽い作業で推論量を下げたい場合も、利用環境が提示する値から選択する。Astraが使えない環境では、使えるモデルと要件を確認し、別モデルを黙って選ばない。
+プロジェクトディレクトリで、CLIのモデルと推論量を明示して起動する:
+
+| 推論量 | 起動コマンド |
+| --- | --- |
+| low | `codex -m gpt-6-astra -c 'model_reasoning_effort="low"'` |
+| medium | `codex -m gpt-6-astra -c 'model_reasoning_effort="medium"'` |
+| high | `codex -m gpt-6-astra -c 'model_reasoning_effort="high"'` |
+| xhigh | `codex -m gpt-6-astra -c 'model_reasoning_effort="xhigh"'` |
+| max | `codex -m gpt-6-astra -c 'model_reasoning_effort="max"'` |
+
+指定した推論量はその起動に適用され、リポジトリやグローバルの設定ファイルを書き換えない。明示指定がない場合は、信頼済みプロジェクトで `codex` を起動すると既定の `xhigh` を使う。
+
+[Codexの設定仕様](https://learn.chatgpt.com/docs/config-file/config-reference)では、プロジェクト内の `.codex/config.toml` に書いた `profile` / `profiles` は無視される。このリポジトリにはそれらを置かず、CLIの明示指定を使う。
+
+アプリではモデルをGPT-6 Astraにし、画面に表示される推論量から選ぶ。リポジトリの設定によってアプリの選択肢が増えるわけではない。選択肢がない場合は利用環境・アカウントの対応状況を確認する。Astraが使えない環境では、使えるモデルと要件を確認し、別モデルを黙って選ばない。
 
 モデル設定だけを同梱し、権限、承認、MCP、通知、hooks、グローバル設定は変更しない。`project-start` の複製補助は `.codex/config.toml` だけを対象にし、Codexの認証・履歴・その他ローカルファイルを持ち込まない。設定ファイル自体にも認証情報・個人の絶対パスを追記しない。
 

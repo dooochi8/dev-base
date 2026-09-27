@@ -56,7 +56,7 @@
 
 ## GPT-6 Astraを中心に進める
 
-`.codex/config.toml` は `gpt-6-astra` / `xhigh` を既定にします。アプリやCLIで明示したモデル選択、利用可否、信頼・管理設定については [設定ガイド](docs/codex.md) を確認してください。
+`.codex/config.toml` は `gpt-6-astra` / `xhigh` を既定にし、`low` / `medium` / `high` / `xhigh` / `max` の5段階の切替方法を用意します。ECCの手順は全段階で共通です。アプリやCLIで明示したモデル選択、利用可否、信頼・管理設定については [設定ガイド](docs/codex.md) を確認してください。
 
 計画・実装・検証を同じ環境で完了できます。実際に担当を分ける場合だけ `plan-handoff` を使い、独立したレビューが必要な場合だけ追加の担当を使います。
 

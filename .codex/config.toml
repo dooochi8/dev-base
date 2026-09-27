@@ -2,3 +2,6 @@
 # このプロジェクトの既定値。CLI/UIで明示した選択を優先する。
 model = "gpt-6-astra"
 model_reasoning_effort = "xhigh"
+
+# 対応する推論量: low / medium / high / xhigh / max。切替方法は docs/codex.md。
+# project-local の profiles はCodexに無視されるため、CLI/UIで明示して選ぶ。

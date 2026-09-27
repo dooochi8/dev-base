@@ -15,7 +15,7 @@ dev-baseは [ECC](https://github.com/affaan-m/ECC) の開発手法を選んで�
 | `skills/security-review/SKILL.md`, `rules/common/security.md` | [security-review](../security-review/SKILL.md) | 差分と信頼境界に限定。特定フレームワークや認証方式を強制せず、拒否ケースと証拠を重視 |
 | `skills/verification-loop/SKILL.md` | [verify](../verify/SKILL.md)へ統合 | ビルド・型・lint・テスト・セキュリティ・差分のうち該当項目を選択。未実施・対象外を区別 |
 | `skills/strategic-compact/SKILL.md` | [長い作業の再開](codex.md#長い作業の再開) | 中断前に状態を記録し再開時に照合。特定ツールの圧縮コマンド・自動メモリ・タイマーは導入しない |
-| `.codex/config.toml` | [プロジェクト設定](../.codex/config.toml) | GPT-6 Astra / xhighを既定にし、モデル以外の設定は持ち込まない |
+| `.codex/config.toml` | [プロジェクト設定](../.codex/config.toml) | GPT-6 Astraの5段階（low / medium / high / xhigh / max）を選択でき、既定はxhigh。モデル以外の設定は持ち込まない |
 | `rules/common/testing.md` | 既存の `tdd` / `debug` を継続 | 振る舞い中心のred-greenは維持。一律80%や全変更でのE2E・強制委譲は採用しない |
 
 planner・code-reviewer等の役割は、既存の要件・設計・差分レビュースキルで扱う。実行環境に存在しないエージェント名を指示へ持ち込まない。
