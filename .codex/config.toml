@@ -1,0 +1,4 @@
+#:schema https://developers.openai.com/codex/config-schema.json
+# このプロジェクトの既定値。CLI/UIで明示した選択を優先する。
+model = "gpt-6-astra"
+model_reasoning_effort = "xhigh"

@@ -10,7 +10,8 @@ import subprocess
 import sys
 
 ROOT_FILES = ("AGENTS.md", "CLAUDE.md", ".gitignore", ".linear.example.json")
-DOCS = ("linear.md", "project-setup.md", "workflows.md", "skill-sources.md")
+DOCS = ("linear.md", "project-setup.md", "workflows.md", "skill-sources.md",
+        "codex.md", "ecc-adoption.md", "third-party/ecc/LICENSE")
 SKIP = {".git", ".agents", ".claude", "__pycache__", ".DS_Store", "node_modules",
         ".venv", "tmp", "dist", "coverage"}
 
@@ -51,7 +52,12 @@ def inventory(source):
         else:
             raise BootstrapError(f"通常ファイルではありません: {path.relative_to(source)}")
 
-    optional = [name for name in ("LICENSE", "LICENSE.md", "NOTICE") if (source / name).exists()]
+    # Copy only the reviewed project config, never an entire Codex runtime directory.
+    codex_config = source / ".codex/config.toml"
+    if codex_config.exists() and not codex_config.is_file():
+        raise BootstrapError(".codex/config.tomlは通常ファイルである必要があります")
+    optional = [name for name in ("LICENSE", "LICENSE.md", "NOTICE", ".codex/config.toml")
+                if (source / name).exists() or (source / name).is_symlink()]
     for relative in [*ROOT_FILES, *optional, *(f"docs/{name}" for name in DOCS),
                      "scripts", "templates", ".github", *skills]:
         walk(source / relative)
@@ -118,7 +124,8 @@ def bootstrap(source, destination, name, description, apply=False, allow_dirty=F
               "GitHub・Linearは未接続です。接続確認後にURLとIssue IDを追記してください。\n"
               "アプリの技術スタック・実装・実行コマンドは未定です。\n\n"
               "[開発ルール](AGENTS.md) / [初期設定](docs/project-setup.md) / "
-              "[Linear](docs/linear.md) / [組み合わせ](docs/workflows.md)\n\n"
+              "[Linear](docs/linear.md) / [組み合わせ](docs/workflows.md) / "
+              "[GPT-6 Astra設定](docs/codex.md)\n\n"
               "## 共通スキル\n\n" + "\n".join(f"- [`{s}`]({s}/SKILL.md)" for s in skills) +
               "\n\n## 共通検査\n\n```sh\nbash scripts/sync-skills.sh --check\n"
               "python3 -B -m unittest discover -s scripts -p 'test_*.py'\n```\n")
