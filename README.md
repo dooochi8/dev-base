@@ -1,6 +1,6 @@
 # dev-base
 
-新しい開発で複製して使う、日本語の開発ベースです。共通ルール、20本のスキル、Linear用コマンドとIssueテンプレートを同梱しています。アプリの技術スタックやLinearのProjectは複製先で設定します。
+新しい開発で複製して使う、日本語の開発ベースです。共通ルール、21本のスキル、Linear用コマンドとIssueテンプレートを同梱しています。アプリの技術スタックやLinearのProjectは複製先で設定します。
 
 一式まとめて始める場合は [`project-start`](project-start/SKILL.md) に「新しいプロジェクト名と目的」を渡してください。ローカル複製、GitHub、Linear、初期Issueと検証を扱い、未確定の外部作成先だけ確認します。
 
@@ -25,6 +25,7 @@
 | `tdd` | red-green-refactor で振る舞い中心に実装を進める |
 | `debug` | 系統的に原因を特定して直す（再現→最小化→仮説→切り分け） |
 | `verify` | 変更後に実際に動かし、出力を根拠に完了を判断する |
+| `browser-evidence` | 実ブラウザの操作動画・画面・結果を残し、S3/R2へ保存してPRへ掲載する |
 | `review-diff` | 差分をレビューし、バグと単純化の観点で指摘する |
 | `improve-codebase-architecture` | 設計上の摩擦を見つけて改善案を整理する |
 | `show-me` | 処理・構造・設計案を図や小さなHTMLで説明する |
@@ -98,6 +99,7 @@
 - `/tdd`
 - `/debug`
 - `/verify`
+- `/browser-evidence`
 - `/review-diff`
 - `/improve-codebase-architecture`
 - `/show-me`

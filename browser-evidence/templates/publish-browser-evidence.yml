@@ -1,0 +1,80 @@
+name: Publish browser evidence
+
+on:
+  workflow_run:
+    workflows: [Browser evidence]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-evidence-publish-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      vars.BROWSER_EVIDENCE_PUBLISH_ENABLED == 'true' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      (github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: browser-evidence
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+    steps:
+      - name: Check out trusted publisher from default branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - name: Resolve current same-repository PR
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          repo = os.environ['GH_REPO']
+          result = subprocess.run(['gh', 'api', '--paginate', '--slurp', f'repos/{repo}/pulls?state=open&per_page=100'], check=True, capture_output=True, text=True)
+          matches = [pr for page in json.loads(result.stdout) for pr in page
+                     if pr['head']['sha'] == os.environ['HEAD_SHA']
+                     and pr['head']['ref'] == os.environ['HEAD_BRANCH']
+                     and pr['head']['repo']['full_name'] == repo]
+          if len(matches) != 1:
+              raise SystemExit('No unique current PR for this evidence run; publishing stopped.')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f"number={matches[0]['number']}\n")
+          PY
+      - name: Download only captured evidence data
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: browser-evidence
+          path: .artifacts/incoming
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+      - name: Upload media and update evidence comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          EVIDENCE_S3_ENDPOINT: ${{ vars.EVIDENCE_S3_ENDPOINT }}
+          EVIDENCE_S3_BUCKET: ${{ vars.EVIDENCE_S3_BUCKET }}
+          EVIDENCE_PUBLIC_BASE_URL: ${{ vars.EVIDENCE_PUBLIC_BASE_URL }}
+          EVIDENCE_S3_REGION: ${{ vars.EVIDENCE_S3_REGION }}
+          EVIDENCE_KEY_PREFIX: ${{ vars.EVIDENCE_KEY_PREFIX }}
+          EVIDENCE_S3_ACCESS_KEY_ID: ${{ secrets.EVIDENCE_S3_ACCESS_KEY_ID }}
+          EVIDENCE_S3_SECRET_ACCESS_KEY: ${{ secrets.EVIDENCE_S3_SECRET_ACCESS_KEY }}
+          EVIDENCE_S3_SESSION_TOKEN: ${{ secrets.EVIDENCE_S3_SESSION_TOKEN }}
+        run: |
+          python3 browser-evidence/scripts/publish.py \
+            --manifest .artifacts/incoming/manifest.json --expected-sha "$HEAD_SHA" \
+            --publish --comment --repo "$GH_REPO" --pr "$PR_NUMBER"
