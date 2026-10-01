@@ -12,7 +12,7 @@ import sys
 ROOT_FILES = ("AGENTS.md", "CLAUDE.md", ".gitignore", ".linear.example.json")
 DOCS = ("linear.md", "project-setup.md", "workflows.md", "skill-sources.md")
 SKIP = {".git", ".agents", ".claude", "__pycache__", ".DS_Store", "node_modules",
-        ".venv", "tmp", "dist", "coverage"}
+        ".venv", "tmp", "dist", "coverage", ".artifacts"}
 
 
 class BootstrapError(Exception):

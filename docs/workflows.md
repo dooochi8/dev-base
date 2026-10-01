@@ -108,3 +108,6 @@ review-diff → (必要なら) plan-handoff で修正指示を再度渡す
 - 利用者向けUIの見た目・操作感・動きを磨く時は `emil-design-eng` を使う。動かさない判断、reduced-motion、タッチ・キーボード、負荷下の性能を含めて確認し、導入だけでUI変更や依存追加は行わない。
 - SkillやAGENTSの指示を独立実行で評価したい時に `empirical-prompt-tuning` を使う。利用可能な実行環境を確認し、自己再読を独立評価と呼ばない。
 - スキル導入依頼は、そのスキルの対話・反復評価の開始指示ではない。必要な作業を選択する。
+# ブラウザ操作の動画をPRへ載せる
+
+Webの挙動を変更するときは`dev-base → browser-evidence → verify`を使う。共通のrunner・reporterで実操作を検証し、動画と画面を残す。PRの最終headで録画し直し、明示したS3/R2へ保存して証跡コメントを更新する。導入・通信先・認証・CI分離は[接続手順](../browser-evidence/references/setup.md)を参照。新規プロジェクトへのコピーだけでは外部公開を開始しない。
