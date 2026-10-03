@@ -1,16 +1,31 @@
 # dev-base
 
-新しい開発で複製して使う、日本語の開発ベースです。共通ルール、22本のスキル、Linear用コマンドとIssueテンプレートを同梱しています。Codexの既定はGPT-6 Astraです。アプリの技術スタックやLinearのProjectは複製先で設定します。
+pstack-claudeを基盤にした、日本語の開発ベースです。通常は `poteto-mode` に目的を渡し、調査・設計・担当分離・実装・レビュー・実行検証を進めます。pstackの54本のスキルと既存の補助スキル、Linear用コマンドとIssueテンプレートを同梱しています。アプリの技術スタックやLinearのProjectは複製先で設定します。
 
-[ECC](https://github.com/affaan-m/ECC)の調査・セキュリティ・検証・作業再開の手法を、既存のスキルへ統合しています。[採用範囲と出典](docs/ecc-adoption.md) / [GPT-6 Astraの設定と使い方](docs/codex.md)を参照してください。
+[pstack-claude](https://github.com/michael-denyer/pstack-claude) `0.9.63` の全スキル・23 playbook・参照・補助スクリプトを固定commitで採用しています。[採用範囲と実行依存](docs/pstack-adoption.md)を参照してください。
+
+[ECC](https://github.com/affaan-m/ECC)の調査・セキュリティ・検証の観点も補助として保持しています。[採用範囲と出典](docs/ecc-adoption.md) / [GPT-6 Astraの設定と使い方](docs/codex.md)を参照してください。
 
 一式まとめて始める場合は [`project-start`](project-start/SKILL.md) に「新しいプロジェクト名と目的」を渡してください。ローカル複製、GitHub、Linear、初期Issueと検証を扱い、未確定の外部作成先だけ確認します。
 
 まず [新しいプロジェクトの始め方](docs/project-setup.md) を読み、`./scripts/sync-skills.sh --check` と `./scripts/linear --help` で入口を確認してください。Linear操作にはPython 3.9以降とAPIキーが必要です。個人のVaultへの参照や追加Pythonパッケージは不要です。
 
-## 含まれるスキル
+## 標準の使い方
 
-ライフサイクル順（把握→要件→分解→受け渡し→実装→確認→設計改善）に並べています。
+Codexでは `$poteto-mode`、Claude Codeでは `/poteto-mode` を使います。AGENTS.mdからも開発の標準入口として選びます。既存の `$dev-base` も同じフローへ接続します。
+
+```text
+poteto-modeで検索条件がページ移動時に消えるバグを直して。
+まず再現し、原因を調べ、修正後に同じ条件で確認して。
+```
+
+`architect` は設計の比較、`arena` は独立した複数案、`interrogate` は独立した批判的レビュー、`how` / `why` は構造と設計理由、`swarm` は分担を扱います。全スキルは [採用manifest](docs/pstack-manifest.json) で確認できます。
+
+この配置はskills-onlyです。ネイティブプラグインの専用agent・hooksは登録しません。実行環境に合わせたモデル・担当・操作の読み替えは [実行対応](poteto-mode/references/runtime.md) を使います。担当別設定が必要な時は `setup-pstack` を呼びます。
+
+## 既存の補助スキル
+
+pstackの手順から、必要な要件整理・検証・文書化・UI・運用のスキルを使います。
 
 | スキル | 役割 |
 |--------|------|
@@ -24,8 +39,8 @@
 | `plan-design-review` | 画面・導線の計画や、空・エラー・読み込み中の状態をレビューする |
 | `prd-to-issues` | PRD を薄い縦切りの issue 群に分解する |
 | `plan-handoff` | 計画者が実行者へ渡す実行指示書を作る |
-| `dev-base` | 日常的な実装・バグ修正・リファクタの共通ベース |
-| `tdd` | red-green-refactor で振る舞い中心に実装を進める |
+| `dev-base` | 既存名からpoteto-modeへ接続する入口 |
+| `tdd` | pstack版の失敗試験から修正・再検証へ進む |
 | `debug` | 系統的に原因を特定して直す（再現→最小化→仮説→切り分け） |
 | `verify` | 変更後に実際に動かし、出力を根拠に完了を判断する |
 | `review-diff` | 差分をレビューし、バグと単純化の観点で指摘する |
@@ -58,9 +73,9 @@
 
 `.codex/config.toml` は `gpt-6-astra` / `xhigh` を既定にし、`low` / `medium` / `high` / `xhigh` / `max` の5段階の切替方法を用意します。ECCの手順は全段階で共通です。アプリやCLIで明示したモデル選択、利用可否、信頼・管理設定については [設定ガイド](docs/codex.md) を確認してください。
 
-計画・実装・検証を同じ環境で完了できます。実際に担当を分ける場合だけ `plan-handoff` を使い、独立したレビューが必要な場合だけ追加の担当を使います。
+pstackの手順に沿って調査・設計・実装・レビューを分担します。指定がない担当はセッションのモデル・推論量を継承し、上位指示と利用できる機能に合わせて実行します。別担当や複数モデルを利用できない場合は、その限界を報告します。
 
-スキルの連鎖パターン（小さな修正・バグ修正・中規模以上の機能開発）の詳細は `docs/workflows.md` を参照してください。
+依頼からplaybookを選ぶ方法と既存スキルの接続は `docs/workflows.md` を参照してください。
 
 ## ディレクトリ構成
 
@@ -90,6 +105,10 @@
 
 このリポジトリを開いた状態で、スラッシュコマンドで呼び出せます。
 
+- `/poteto-mode`
+- `/architect`
+- `/arena`
+- `/interrogate`
 - `/orient`
 - `/search-first`
 - `/security-review`
@@ -119,7 +138,8 @@
 
 例:
 
-- `dev-base を使ってこの修正を進めて`
+- `poteto-mode を使ってこの修正を再現から検証まで進めて`
+- `interrogate でこの差分を厳しくレビューして`
 - `grill-me でこの設計案を詰めて`
 - `plan-eng-review でこの実装計画の技術的な抜けを確認して`
 - `plan-design-review でこの画面仕様の導線と例外状態を確認して`

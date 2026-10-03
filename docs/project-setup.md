@@ -1,12 +1,14 @@
 # 新しいプロジェクトの始め方
 
-このベースはスキル・運用・接続コマンドを含みます。`project-start` で、ローカル複製からGitHub・Linear Projectの新規作成、初期Issueまでまとめて準備できます。アプリ実装、クラウド契約、デプロイは含みません。
+このベースはpstack-claudeのスキル・playbook・運用・接続コマンドを含みます。通常の開発はpoteto-modeが手順を選びます。`project-start` で、ローカル複製からGitHub・Linear Projectの新規作成、初期Issueまでまとめて準備できます。アプリ実装、クラウド契約、デプロイは含みません。
 
 ## 一式まとめて立ち上げる
 
 `$project-start プロジェクト名はmy-app、目的は○○。GitHubはprivateで、Linearとスキル一式も準備して` のように依頼します。必要な選択だけ確認し、スキルの [手順](../project-start/SKILL.md) とdry-run対応の複製補助を使います。
 
 複製補助は履歴・認証・元の接続情報を持ち込まず、既存フォルダを上書きしません。現在の全スキルを含め、`.agents` と `.claude` の入口も作ります。未コミット内容を含める時は差分の確認が必要です。単にこのスキルを導入するだけでは外部作成を始めません。
+
+[pstackの採用資料・manifest・MITライセンス](pstack-adoption.md)と全スキルを複製します。個人の `.pstack-models.md` とプラグインhooksは複製しません。
 
 GPT-6 Astraのプロジェクト設定 `.codex/config.toml` とECC由来のスキル・出典・ライセンスも複製します。`.codex` の認証・履歴等は複製対象外です。[Codex設定](codex.md)で利用環境のモデル選択と信頼状態を確認してください。
 

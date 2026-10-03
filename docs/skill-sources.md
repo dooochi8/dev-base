@@ -21,3 +21,7 @@ ECCの対応表、採用しない機能、ライセンスは [ECCの採用範囲
 grillingの取得元commit等は `grilling/references/upstream.md`、smart-docsは `smart-docs/UPSTREAM.md`、emil-design-engは `emil-design-eng/UPSTREAM.md` に保存しています。show-meの上流参照は `https://github.com/humanlayer/skills`。この記録は元の著作権・ライセンスを変更するものではありません。
 
 同期検査はファイル配置と参照の検査です。Codex/Claudeでの全スキルの自動発動、実ユーザーの対話、反復評価の収束は別の実行証拠が必要です。
+
+## pstack-claudeへの基盤移行（2026-10-03 JST）
+
+HIRANO-426で `michael-denyer/pstack-claude` のcommit `b1f7a460cc52eecc2d913313a307d6e22bb440ff`、version `0.9.63` を採用。54本すべての原文・参照・補助スクリプトを保持し、日本語の入口を用意した。poteto-modeを標準入口に、既存dev-baseを接続入口へ変更し、tddはpstack版へ切り替えた。[採用範囲と出典](pstack-adoption.md) を参照。ECC・Emil・Linear等は補助として保持する。

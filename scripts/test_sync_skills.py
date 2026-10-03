@@ -48,6 +48,21 @@ class SyncSkillsTests(unittest.TestCase):
         self.assertNotEqual(self.run_sync().returncode, 0)
         self.assertEqual((owned / "my-file").read_text(), "keep me")
 
+    def test_runtime_dependencies_are_not_projected(self):
+        source = self.root / "example"
+        for relative in ("scripts/node_modules/package/index.js", "scripts/__pycache__/run.pyc", ".venv/bin/python"):
+            file = source / relative
+            file.parent.mkdir(parents=True, exist_ok=True)
+            file.write_text("runtime output")
+        nested = source / "references/agents/reviewer.md"
+        nested.parent.mkdir(parents=True)
+        nested.write_text("required reference")
+        self.assertEqual(self.run_sync().returncode, 0)
+        for relative in ("scripts/node_modules", "scripts/__pycache__", ".venv"):
+            self.assertFalse((self.root / ".claude/skills/example" / relative).exists())
+        self.assertEqual((self.root / ".claude/skills/example/references/agents/reviewer.md").read_text(), "required reference")
+        self.assertEqual(self.run_sync("--check").returncode, 0)
+
     def test_orphan_links_and_invalid_mode(self):
         self.run_sync()
         link = self.root / ".agents/skills/orphan"
