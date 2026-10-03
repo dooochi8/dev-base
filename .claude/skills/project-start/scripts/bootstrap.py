@@ -11,7 +11,8 @@ import sys
 
 ROOT_FILES = ("AGENTS.md", "CLAUDE.md", ".gitignore", ".linear.example.json")
 DOCS = ("linear.md", "project-setup.md", "workflows.md", "skill-sources.md",
-        "codex.md", "ecc-adoption.md", "third-party/ecc/LICENSE")
+        "codex.md", "ecc-adoption.md", "third-party/ecc/LICENSE",
+        "pstack-adoption.md", "pstack-manifest.json", "third-party/pstack-claude")
 SKIP = {".git", ".agents", ".claude", "__pycache__", ".DS_Store", "node_modules",
         ".venv", "tmp", "dist", "coverage"}
 
@@ -58,7 +59,8 @@ def inventory(source):
         raise BootstrapError(".codex/config.tomlは通常ファイルである必要があります")
     optional = [name for name in ("LICENSE", "LICENSE.md", "NOTICE", ".codex/config.toml")
                 if (source / name).exists() or (source / name).is_symlink()]
-    for relative in [*ROOT_FILES, *optional, *(f"docs/{name}" for name in DOCS),
+    optional_docs = ["docs/emil-skills.md"] if (source / "docs/emil-skills.md").is_file() else []
+    for relative in [*ROOT_FILES, *optional, *(f"docs/{name}" for name in DOCS), *optional_docs,
                      "scripts", "templates", ".github", *skills]:
         walk(source / relative)
     # Reject symlink ancestors too (e.g. docs pointing to an unrelated checkout).
@@ -116,15 +118,21 @@ def bootstrap(source, destination, name, description, apply=False, allow_dirty=F
         codex = destination / ".agents/skills" / skill
         codex.parent.mkdir(parents=True, exist_ok=True)
         codex.symlink_to(f"../../{skill}", target_is_directory=True)
-        shutil.copytree(destination / skill, destination / ".claude/skills" / skill,
-                        ignore=lambda _directory, names: [n for n in names if n == "agents"])
+        package = destination / skill
+        shutil.copytree(package, destination / ".claude/skills" / skill,
+                        ignore=lambda directory, names: [n for n in names
+                            if n in SKIP or n.endswith((".pyc", ".pyo"))
+                            or (n == "agents" and Path(directory) == package)])
     readme = (f"# {name}\n\n{description.strip()}\n\n"
               "## 開発の入口\n\n"
+              "通常の開発はpoteto-modeへ目的・対象・制約・完了条件を渡します。\n"
+              "pstack-claudeの手順を選び、調査・設計・実装・レビュー・実物の検証を進めます。\n"
               "開発管理はLinear、コードとレビューはGitHub、仕様はdocsを正本とします。\n"
               "GitHub・Linearは未接続です。接続確認後にURLとIssue IDを追記してください。\n"
               "アプリの技術スタック・実装・実行コマンドは未定です。\n\n"
               "[開発ルール](AGENTS.md) / [初期設定](docs/project-setup.md) / "
               "[Linear](docs/linear.md) / [組み合わせ](docs/workflows.md) / "
+              "[pstack採用範囲](docs/pstack-adoption.md) / "
               "[GPT-6 Astra設定](docs/codex.md)\n\n"
               "## 共通スキル\n\n" + "\n".join(f"- [`{s}`]({s}/SKILL.md)" for s in skills) +
               "\n\n## 共通検査\n\n```sh\nbash scripts/sync-skills.sh --check\n"
