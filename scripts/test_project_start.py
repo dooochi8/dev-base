@@ -98,7 +98,7 @@ class BootstrapTests(unittest.TestCase):
     def test_copy_carries_only_portable_codex_config(self):
         codex = self.source / ".codex"
         codex.mkdir()
-        config = 'model = "gpt-6-astra"\nmodel_reasoning_effort = "high"\n'
+        config = 'sandbox_mode = "read-only"\n'
         (codex / "config.toml").write_text(config)
         for private in ("auth.json", "history.jsonl", "config.local.toml"):
             (codex / private).write_text("private runtime state")
@@ -159,7 +159,7 @@ class BootstrapTests(unittest.TestCase):
         expected = sorted(p.parent.name for p in ROOT.glob("*/SKILL.md"))
         self.assertEqual(result["skills"], expected)
         for relative in (".codex/config.toml", "docs/codex.md"):
-            self.assertEqual((self.destination / relative).read_bytes(), (ROOT / relative).read_bytes(), relative)
+            self.assertFalse((self.destination / relative).exists(), relative)
         check = subprocess.run(["bash", str(self.destination / "scripts/sync-skills.sh"), "--check"],
                                capture_output=True, text=True, timeout=20)
         self.assertEqual(check.returncode, 0, check.stdout + check.stderr)

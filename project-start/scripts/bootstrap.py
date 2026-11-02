@@ -11,7 +11,7 @@ import sys
 
 ROOT_FILES = ("AGENTS.md", "CLAUDE.md", ".gitignore", ".linear.example.json")
 DOCS = ("linear.md", "project-setup.md", "workflows.md", "skill-sources.md",
-        "codex.md", "pstack-adoption.md", "pstack-manifest.json", "third-party/pstack-claude")
+        "pstack-adoption.md", "pstack-manifest.json", "third-party/pstack-claude")
 SKIP = {".git", ".agents", ".claude", "__pycache__", ".DS_Store", "node_modules",
         ".venv", "tmp", "dist", "coverage"}
 
@@ -131,8 +131,7 @@ def bootstrap(source, destination, name, description, apply=False, allow_dirty=F
               "アプリの技術スタック・実装・実行コマンドは未定です。\n\n"
               "[開発ルール](AGENTS.md) / [初期設定](docs/project-setup.md) / "
               "[Linear](docs/linear.md) / [組み合わせ](docs/workflows.md) / "
-              "[pstack採用範囲](docs/pstack-adoption.md) / "
-              "[GPT-6 Astra設定](docs/codex.md)\n\n"
+              "[pstack採用範囲](docs/pstack-adoption.md)\n\n"
               "## 共通スキル\n\n" + "\n".join(f"- [`{s}`]({s}/SKILL.md)" for s in skills) +
               "\n\n## 共通検査\n\n```sh\nbash scripts/sync-skills.sh --check\n"
               "python3 -B -m unittest discover -s scripts -p 'test_*.py'\n```\n")

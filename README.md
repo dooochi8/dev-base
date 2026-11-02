@@ -2,7 +2,7 @@
 
 pstack-claudeを基盤にした、日本語の開発ベースです。通常は `poteto-mode` に目的を渡し、調査・設計・担当分離・実装・レビュー・実行検証を進めます。pstackの54本のスキルと既存の補助スキル、Linear用コマンドとIssueテンプレートを同梱しています。アプリの技術スタックやLinearのProjectは複製先で設定します。
 
-[pstack-claude](https://github.com/michael-denyer/pstack-claude) `0.9.63` の全スキル・23 playbook・参照・補助スクリプトを固定commitで採用しています。[採用範囲と実行依存](docs/pstack-adoption.md)を参照してください。Codexのプロジェクト既定はGPT-6 Astraです。[設定と使い方](docs/codex.md)を参照してください。
+[pstack-claude](https://github.com/michael-denyer/pstack-claude) `0.9.63` の全スキル・23 playbook・参照・補助スクリプトを固定commitで採用しています。[採用範囲と実行依存](docs/pstack-adoption.md)を参照してください。モデルと推論量はセッションとユーザーの選択に任せます。
 
 一式まとめて始める場合は [`project-start`](project-start/SKILL.md) に「新しいプロジェクト名と目的」を渡してください。ローカル複製、GitHub、Linear、初期Issueと検証を扱い、未確定の外部作成先だけ確認します。
 
@@ -65,11 +65,9 @@ pstackの手順から、必要な要件整理・検証・文書化・UI・運用
 
 一覧・詳細・作成・更新・コメント・取消に対応します。削除コマンドはありません。詳細は [Linear運用](docs/linear.md)、本文例は [Issueテンプレート](templates/linear-issue.md) を参照してください。
 
-## GPT-6 Astraを中心に進める
+## モデル
 
-`.codex/config.toml` は `gpt-6-astra` / `xhigh` を既定にし、`low` / `medium` / `high` / `xhigh` / `max` の5段階の切替方法を用意します。アプリやCLIで明示したモデル選択、利用可否、信頼・管理設定については [設定ガイド](docs/codex.md) を確認してください。
-
-pstackの手順に沿って調査・設計・実装・レビューを分担します。指定がない担当はセッションのモデル・推論量を継承し、上位指示と利用できる機能に合わせて実行します。別担当や複数モデルを利用できない場合は、その限界を報告します。
+モデルと推論量はセッションとユーザーの選択に任せる。pstackの手順に沿って調査・設計・実装・レビューを分担し、指定がない担当はそのセッション設定を継承する。別担当や複数モデルを利用できない場合は、その限界を報告する。
 
 依頼からplaybookを選ぶ方法と既存スキルの接続は `docs/workflows.md` を参照してください。
 
@@ -81,8 +79,6 @@ pstackの手順に沿って調査・設計・実装・レビューを分担し�
   Claude Code 向けのスキル配置。`./scripts/sync-skills.sh` による**生成物**であり、手で編集しません。
 - `.agents/skills/`
   Codex が発見するトップレベル正本への相対リンク。同じスクリプトで管理します。
-- `.codex/config.toml`
-  プロジェクトのモデル・推論設定。グローバル設定や権限、MCP、hooksは同梱しません。
 
 ## 使い方
 
@@ -146,4 +142,4 @@ pstackの手順に沿って調査・設計・実装・レビューを分担し�
 
 - すべてのスキルの入口は日本語です。上流の原文を保持する参照資料には英語を含みます。
 - Claude Code 用と Codex 用で、呼び出し名はできるだけ揃えています。
-- 現在の設計方針は `AGENTS.md` と `docs/codex.md` を参照してください。`docs/harness-plan.md` は初期設計の履歴です。
+- 現在の設計方針は `AGENTS.md` を参照してください。`docs/harness-plan.md` は初期設計の履歴です。

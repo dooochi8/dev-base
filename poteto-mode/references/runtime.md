@@ -43,7 +43,7 @@ CodexのCode Modeでは、同じ段階の独立したfunctions.exec内ツール�
 
 書式は上流のrole行に合わせる。例は `feature, refactoring: inherit-parent`、`interrogate reviewers: inherit-parent, inherit-parent`、`default effort: session`。後者は同一モデルの独立レビューであり、モデルの多様性はない。実モデルを指定する場合は、そのセッションで検証した識別子を使う。
 
-本移植にはSessionStart hook・plugin manifest・Codex slash stub・Claude専用agent・Pi拡張を含めない。hook行は適用されない。標準入口はAGENTS.mdから選ぶ。setupの実行を理由に、グローバル設定・hook・MCP・承認・モデルへのアクセスを変更しない。既存の `.codex/config.toml` はプロジェクト起動の既定値で、現在のチャットの選択を変更するものではない。
+本移植にはSessionStart hook・plugin manifest・Codex slash stub・Claude専用agent・Pi拡張を含めない。hook行は適用されない。標準入口はAGENTS.mdから選ぶ。setupの実行を理由に、グローバル設定・hook・MCP・承認・モデルへのアクセスを変更しない。モデルと推論量のプロジェクト既定は置かず、担当はセッションの選択を継承する。
 
 ## 既存運用との接続
 
