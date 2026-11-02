@@ -95,6 +95,47 @@ class BootstrapTests(unittest.TestCase):
             self.run_bootstrap(apply=True)
         self.assertFalse(self.destination.exists())
 
+    def test_copy_carries_only_portable_codex_config(self):
+        codex = self.source / ".codex"
+        codex.mkdir()
+        config = 'model = "gpt-6-astra"\nmodel_reasoning_effort = "high"\n'
+        (codex / "config.toml").write_text(config)
+        for private in ("auth.json", "history.jsonl", "config.local.toml"):
+            (codex / private).write_text("private runtime state")
+        result = self.run_bootstrap(apply=True)
+        self.assertEqual((self.destination / ".codex/config.toml").read_text(), config)
+        self.assertEqual({p.name for p in (self.destination / ".codex").iterdir()}, {"config.toml"})
+        manifest = json.loads((self.destination / "docs/bootstrap.json").read_text())
+        self.assertIn(".codex/config.toml", manifest["sourceFileHashes"])
+        self.assertIn(".codex/config.toml", result["files"])
+
+    def test_codex_config_symlink_is_rejected_before_copy(self):
+        codex = self.source / ".codex"
+        codex.mkdir()
+        outside = self.root / "private-config.toml"
+        outside.write_text("private runtime state")
+        (codex / "config.toml").symlink_to(outside)
+        with self.assertRaises(bootstrap.BootstrapError):
+            self.run_bootstrap(apply=True)
+        self.assertFalse(self.destination.exists())
+
+    def test_codex_config_directory_is_rejected_before_copy(self):
+        directory = self.source / ".codex/config.toml"
+        directory.mkdir(parents=True)
+        (directory / "auth.json").write_text("private runtime state")
+        with self.assertRaises(bootstrap.BootstrapError):
+            self.run_bootstrap(apply=True)
+        self.assertFalse(self.destination.exists())
+
+    def test_codex_config_symlink_parent_is_rejected_before_copy(self):
+        outside = self.root / "private-codex"
+        outside.mkdir()
+        (outside / "config.toml").write_text("private runtime state")
+        (self.source / ".codex").symlink_to(outside)
+        with self.assertRaises(bootstrap.BootstrapError):
+            self.run_bootstrap(apply=True)
+        self.assertFalse(self.destination.exists())
+
     def test_nested_repository_and_source_destinations_are_rejected(self):
         self.destination = self.source / "new-project"
         with self.assertRaises(bootstrap.BootstrapError):
@@ -117,6 +158,9 @@ class BootstrapTests(unittest.TestCase):
         result = bootstrap.bootstrap(ROOT, self.destination, "sample-app", "隔離テスト", True, True)
         expected = sorted(p.parent.name for p in ROOT.glob("*/SKILL.md"))
         self.assertEqual(result["skills"], expected)
+        for relative in (".codex/config.toml", "docs/codex.md", "docs/ecc-adoption.md",
+                         "docs/third-party/ecc/LICENSE", "search-first/LICENSE", "security-review/LICENSE"):
+            self.assertEqual((self.destination / relative).read_bytes(), (ROOT / relative).read_bytes(), relative)
         check = subprocess.run(["bash", str(self.destination / "scripts/sync-skills.sh"), "--check"],
                                capture_output=True, text=True, timeout=20)
         self.assertEqual(check.returncode, 0, check.stdout + check.stderr)

@@ -1,19 +1,37 @@
 # dev-base
 
-新しい開発で複製して使う、日本語の開発ベースです。共通ルール、20本のスキル、Linear用コマンドとIssueテンプレートを同梱しています。アプリの技術スタックやLinearのProjectは複製先で設定します。
+pstack-claudeを基盤にした、日本語の開発ベースです。通常は `poteto-mode` に目的を渡し、調査・設計・担当分離・実装・レビュー・実行検証を進めます。pstackの54本のスキルと既存の補助スキル、Linear用コマンドとIssueテンプレートを同梱しています。アプリの技術スタックやLinearのProjectは複製先で設定します。
+
+[pstack-claude](https://github.com/michael-denyer/pstack-claude) `0.9.63` の全スキル・23 playbook・参照・補助スクリプトを固定commitで採用しています。[採用範囲と実行依存](docs/pstack-adoption.md)を参照してください。
+
+[ECC](https://github.com/affaan-m/ECC)の調査・セキュリティ・検証の観点も補助として保持しています。[採用範囲と出典](docs/ecc-adoption.md) / [GPT-6 Astraの設定と使い方](docs/codex.md)を参照してください。
 
 一式まとめて始める場合は [`project-start`](project-start/SKILL.md) に「新しいプロジェクト名と目的」を渡してください。ローカル複製、GitHub、Linear、初期Issueと検証を扱い、未確定の外部作成先だけ確認します。
 
 まず [新しいプロジェクトの始め方](docs/project-setup.md) を読み、`./scripts/sync-skills.sh --check` と `./scripts/linear --help` で入口を確認してください。Linear操作にはPython 3.9以降とAPIキーが必要です。個人のVaultへの参照や追加Pythonパッケージは不要です。
 
-## 含まれるスキル
+## 標準の使い方
 
-ライフサイクル順（把握→要件→分解→受け渡し→実装→確認→設計改善）に並べています。
+Codexでは `$poteto-mode`、Claude Codeでは `/poteto-mode` を使います。AGENTS.mdからも開発の標準入口として選びます。既存の `$dev-base` も同じフローへ接続します。
+
+```text
+poteto-modeで検索条件がページ移動時に消えるバグを直して。
+まず再現し、原因を調べ、修正後に同じ条件で確認して。
+```
+
+`architect` は設計の比較、`arena` は独立した複数案、`interrogate` は独立した批判的レビュー、`how` / `why` は構造と設計理由、`swarm` は分担を扱います。全スキルは [採用manifest](docs/pstack-manifest.json) で確認できます。
+
+この配置はskills-onlyです。ネイティブプラグインの専用agent・hooksは登録しません。実行環境に合わせたモデル・担当・操作の読み替えは [実行対応](poteto-mode/references/runtime.md) を使います。担当別設定が必要な時は `setup-pstack` を呼びます。
+
+## 既存の補助スキル
+
+pstackの手順から、必要な要件整理・検証・文書化・UI・運用のスキルを使います。
 
 | スキル | 役割 |
 |--------|------|
 | `project-start` | 開発ベース・GitHub・Linear・スキル一式を揃えて新規プロジェクトを始める |
 | `orient` | 未知のリポジトリを最短で把握し、以降の作業の土台になるマップを作る |
+| `search-first` | 新しい依存・連携・共通機能の導入前に、既存実装と候補を比較する |
 | `grill-me` | 設計案・要件・方針を一問ずつ厳しく詰め、未解決の前提をなくす |
 | `grilling` | 独立した質問をラウンドにまとめ、前提・依存・失敗条件を詰める |
 | `write-a-prd` | 実装前に PRD を整理して書く |
@@ -21,11 +39,12 @@
 | `plan-design-review` | 画面・導線の計画や、空・エラー・読み込み中の状態をレビューする |
 | `prd-to-issues` | PRD を薄い縦切りの issue 群に分解する |
 | `plan-handoff` | 計画者が実行者へ渡す実行指示書を作る |
-| `dev-base` | 日常的な実装・バグ修正・リファクタの共通ベース |
-| `tdd` | red-green-refactor で振る舞い中心に実装を進める |
+| `dev-base` | 既存名からpoteto-modeへ接続する入口 |
+| `tdd` | pstack版の失敗試験から修正・再検証へ進む |
 | `debug` | 系統的に原因を特定して直す（再現→最小化→仮説→切り分け） |
 | `verify` | 変更後に実際に動かし、出力を根拠に完了を判断する |
 | `review-diff` | 差分をレビューし、バグと単純化の観点で指摘する |
+| `security-review` | 認証・認可・外部入力・秘密情報・決済の変更を信頼境界から確認する |
 | `improve-codebase-architecture` | 設計上の摩擦を見つけて改善案を整理する |
 | `show-me` | 処理・構造・設計案を図や小さなHTMLで説明する |
 | `smart-docs` | コードを根拠に日本語の設計文書・開発ガイド・構成図を作成する |
@@ -50,14 +69,13 @@
 
 一覧・詳細・作成・更新・コメント・取消に対応します。削除コマンドはありません。詳細は [Linear運用](docs/linear.md)、本文例は [Issueテンプレート](templates/linear-issue.md) を参照してください。
 
-## モデル分業の前提
+## GPT-6 Astraを中心に進める
 
-計画と実行を分ける場合にも、一つの環境で完了する場合にも使えます。モデルやツールの引継ぎは必須ではありません。
+`.codex/config.toml` は `gpt-6-astra` / `xhigh` を既定にし、`low` / `medium` / `high` / `xhigh` / `max` の5段階の切替方法を用意します。ECCの手順は全段階で共通です。アプリやCLIで明示したモデル選択、利用可否、信頼・管理設定については [設定ガイド](docs/codex.md) を確認してください。
 
-- **計画・レビュー**（高性能モデル）: `orient` / `grill-me` / `write-a-prd` / `prd-to-issues` / `plan-handoff` / `review-diff`
-- **実行**（軽量モデル）: `dev-base` / `tdd` / `debug` / `verify`
+pstackの手順に沿って調査・設計・実装・レビューを分担します。指定がない担当はセッションのモデル・推論量を継承し、上位指示と利用できる機能に合わせて実行します。別担当や複数モデルを利用できない場合は、その限界を報告します。
 
-スキルの連鎖パターン（小さな修正・バグ修正・中規模以上の機能開発）の詳細は `docs/workflows.md` を参照してください。
+依頼からplaybookを選ぶ方法と既存スキルの接続は `docs/workflows.md` を参照してください。
 
 ## ディレクトリ構成
 
@@ -67,6 +85,8 @@
   Claude Code 向けのスキル配置。`./scripts/sync-skills.sh` による**生成物**であり、手で編集しません。
 - `.agents/skills/`
   Codex が発見するトップレベル正本への相対リンク。同じスクリプトで管理します。
+- `.codex/config.toml`
+  プロジェクトのモデル・推論設定。グローバル設定や権限、MCP、hooksは同梱しません。
 
 ## 使い方
 
@@ -85,7 +105,13 @@
 
 このリポジトリを開いた状態で、スラッシュコマンドで呼び出せます。
 
+- `/poteto-mode`
+- `/architect`
+- `/arena`
+- `/interrogate`
 - `/orient`
+- `/search-first`
+- `/security-review`
 - `/project-start`
 - `/grill-me`
 - `/grilling`
@@ -112,7 +138,8 @@
 
 例:
 
-- `dev-base を使ってこの修正を進めて`
+- `poteto-mode を使ってこの修正を再現から検証まで進めて`
+- `interrogate でこの差分を厳しくレビューして`
 - `grill-me でこの設計案を詰めて`
 - `plan-eng-review でこの実装計画の技術的な抜けを確認して`
 - `plan-design-review でこの画面仕様の導線と例外状態を確認して`
@@ -125,4 +152,4 @@
 
 - すべてのスキルの入口は日本語です。上流の原文を保持する参照資料には英語を含みます。
 - Claude Code 用と Codex 用で、呼び出し名はできるだけ揃えています。
-- リポジトリ全体の設計方針は `CLAUDE.md` と `docs/harness-plan.md` を参照してください。
+- 現在の設計方針は `AGENTS.md` と `docs/codex.md` を参照してください。`docs/harness-plan.md` は初期設計の履歴です。

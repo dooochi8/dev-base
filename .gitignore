@@ -4,6 +4,8 @@
 !.env.example
 .linear.json
 .linear_token
+.pstack-models.md
+todo.md
 __pycache__/
 *.py[cod]
 .DS_Store
