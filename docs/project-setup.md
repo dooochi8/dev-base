@@ -43,8 +43,9 @@ git remote add origin <新しいリポジトリのURL>
 
 ```sh
 ./scripts/sync-skills.sh --check
+python3 scripts/check-pstack-models
 python3 -B -m unittest discover -s scripts -p 'test_*.py'
 ./scripts/linear doctor
 ```
 
-最初の2つは認証なしで実行できます。`doctor` には認証と実在する接続先が必要です。コピー確認・静的検査は、全Skillの自動発動や実アプリの動作確認を証明するものではありません。
+`doctor` 以外は認証なしで実行できます。`doctor` には認証と実在する接続先が必要です。コピー確認・静的検査は、全Skillの自動発動や実アプリの動作確認を証明するものではありません。

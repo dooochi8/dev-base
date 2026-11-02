@@ -69,6 +69,12 @@ pstackの手順から、必要な要件整理・検証・文書化・UI・運用
 
 モデルと推論量はセッションとユーザーの選択に任せる。pstackの手順に沿って調査・設計・実装・レビューを分担し、指定がない担当はそのセッション設定を継承する。Claude、GPT、Gemini へは自動で切り替えない。別担当を起動できない場合は、その限界を報告する。
 
+サブエージェントの model 引数に opus、sonnet、haiku、fable、claude、gpt- で始まる名前、codex:gpt で始まる名前、gemini で始まる名前を渡すと、その起動は失敗です。`.pstack-models.md` に同じ名前があれば検査も失敗します。ハッシュ固定の上流ファイルは編集せず、検査から外します。
+
+```sh
+python3 scripts/check-pstack-models
+```
+
 依頼からplaybookを選ぶ方法と既存スキルの接続は `docs/workflows.md` を参照してください。
 
 ## ディレクトリ構成

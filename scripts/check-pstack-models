@@ -1,0 +1,181 @@
+#!/usr/bin/env python3
+"""サブエージェントへ渡す禁止モデルが、ローカルの既定値に無いかを検査する。
+
+ハッシュ固定の上流（docs/pstack-manifest.json の files と licenseFiles）と、
+その .claude/skills・.agents/skills への配置は対象外にする。上流は編集しない。
+
+役割行や model 代入が禁止族だけを値にしているとき失敗する。
+ルートや同名の .pstack-models.md は、禁止族の名前が1つでもあれば失敗する。
+"""
+import argparse
+import json
+import os
+from pathlib import Path
+import re
+import sys
+
+ROOT = Path(__file__).resolve().parent.parent
+SUFFIXES = {".md", ".toml", ".json", ".yml", ".yaml", ".txt"}
+SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "dist", "coverage", "tmp"}
+EXACT = {"opus", "sonnet", "haiku", "fable", "claude"}
+ALLOWED = {"inherit-parent", "auto", "session", "low", "medium", "high", "xhigh", "max"}
+TOKEN = re.compile(r"[A-Za-z0-9_.:/+@-]+")
+MODEL_ASSIGN = re.compile(
+    r"(?i)(?<![A-Za-z0-9_])model(?![A-Za-z0-9_])\s*[:=]\s*[`'\"\[]{0,3}([A-Za-z0-9_.:/+@-]+)"
+)
+QUOTED = re.compile(r"[:=]\s*[`'\"]([A-Za-z0-9_.:/+@-]+)[`'\"]")
+COLON = re.compile(r":\s*([^:\n]*)")
+LIST_ITEM = re.compile(r"^\s*[-*]\s+[`'\"]?([A-Za-z0-9_.:/+@-]+)[`'\"]?\s*$")
+ALIAS = re.compile(
+    r"(?i)(?:^|[\s,`'\"|:(])(opus|sonnet|haiku|fable|claude(?:-[\w.+-]*)?|"
+    r"gpt-[\w.+-]*|codex:gpt[\w.+-]*|gemini(?:-[\w.+-]*)?)\s*="
+)
+CJK = re.compile(r"[ぁ-んァ-ン一-龯]")
+
+
+def classify(token):
+    raw = token.strip().strip("`\"'")
+    if not raw:
+        return "empty"
+    if "://" in raw or raw.startswith("//") or raw.lower().startswith("http"):
+        return "other"
+    if "@" in raw:
+        model, effort = raw.split("@", 1)
+        if model == "":
+            return "allowed" if effort.lower() in ALLOWED else "other"
+        return classify(model)
+    lower = raw.lower()
+    if lower in ALLOWED:
+        return "allowed"
+    if lower in EXACT or lower.startswith(("claude-", "gpt-", "gemini", "codex:gpt")):
+        return "forbidden"
+    if "/claude" in lower or "/gpt-" in lower or "/gemini" in lower:
+        return "forbidden"
+    return "other"
+
+
+def pieces(token):
+    return token.split("=") if "=" in token else [token]
+
+
+def pure_forbidden(value):
+    if not value or CJK.search(value):
+        return None
+    hits = []
+    tokens = TOKEN.findall(value)
+    if not tokens:
+        return None
+    for token in tokens:
+        for piece in pieces(token):
+            kind = classify(piece)
+            if kind == "forbidden":
+                hits.append(piece)
+            elif kind in {"allowed", "empty"}:
+                continue
+            else:
+                return None
+    return hits[0] if hits else None
+
+
+def line_defaults(line):
+    found = []
+
+    def add(token):
+        if token and token not in found:
+            found.append(token)
+
+    for match in MODEL_ASSIGN.finditer(line):
+        if classify(match.group(1)) == "forbidden":
+            add(match.group(1))
+    for match in QUOTED.finditer(line):
+        if classify(match.group(1)) == "forbidden":
+            add(match.group(1))
+    for match in ALIAS.finditer(line):
+        add(match.group(1))
+    for match in COLON.finditer(line.replace("：", ":")):
+        add(pure_forbidden(match.group(1)))
+    item = LIST_ITEM.match(line)
+    if item and classify(item.group(1)) == "forbidden":
+        add(item.group(1))
+    if "|" in line:
+        for cell in line.strip().strip("|").split("|"):
+            cell = cell.strip().strip("`\"'")
+            if cell and classify(cell) == "forbidden" and TOKEN.fullmatch(cell):
+                add(cell)
+    return found
+
+
+def sheet_tokens(text):
+    found = []
+    for token in TOKEN.findall(text):
+        for piece in pieces(token):
+            if classify(piece) == "forbidden" and piece not in found:
+                found.append(piece)
+    return found
+
+
+def pinned_paths(root):
+    manifest = json.loads((root / "docs/pstack-manifest.json").read_text())
+    pinned = set()
+    for record in [*manifest["files"], *manifest.get("licenseFiles", [])]:
+        relative = Path(record["path"])
+        if relative.is_absolute() or ".." in relative.parts:
+            raise ValueError(f"manifest: 範囲外のpath {relative}")
+        posix = relative.as_posix()
+        pinned.add(posix)
+        pinned.add(f".claude/skills/{posix}")
+        pinned.add(f".agents/skills/{posix}")
+    return pinned
+
+
+def check(root):
+    root = Path(root).resolve()
+    pinned = pinned_paths(root)
+    problems = []
+    for directory, dirs, files in os_walk(root):
+        dirs[:] = [name for name in dirs if name not in SKIP_DIRS and not (Path(directory) / name).is_symlink()]
+        for name in files:
+            path = Path(directory) / name
+            if path.is_symlink():
+                continue
+            relative = path.relative_to(root).as_posix()
+            if relative in pinned or path.suffix not in SUFFIXES:
+                continue
+            try:
+                text = path.read_text(encoding="utf-8")
+            except (OSError, UnicodeError) as error:
+                problems.append(f"{relative}: {error}")
+                continue
+            if path.name == ".pstack-models.md":
+                for number, line in enumerate(text.splitlines(), 1):
+                    for token in sheet_tokens(line):
+                        problems.append(f"{relative}:{number}: .pstack-models.md に禁止モデル {token}")
+                continue
+            for number, line in enumerate(text.splitlines(), 1):
+                for token in line_defaults(line):
+                    problems.append(f"{relative}:{number}: 既定値に禁止モデル {token}")
+    return problems
+
+
+def os_walk(root):
+    return os.walk(root, followlinks=False)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, default=ROOT)
+    args = parser.parse_args()
+    try:
+        problems = check(args.root)
+    except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as error:
+        print(f"ERROR: {error}", file=sys.stderr)
+        return 1
+    if problems:
+        print("\n".join(problems), file=sys.stderr)
+        return 1
+    print("OK: サブエージェントの禁止モデルは既定値にありません")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

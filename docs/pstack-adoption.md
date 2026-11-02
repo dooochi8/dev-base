@@ -21,7 +21,7 @@ HIRANO-426。dev-baseの標準フローをpstack-claudeへ移行した。既存�
 
 - skills-onlyとしてトップレベル正本を同期する。上流のネイティブplugin manifest、SessionStart hook、Claude専用agent、Pi拡張、Codex slash stubは導入しない。
 - AGENTS.mdを標準入口の選択元とし、CLAUDE.mdからも同じ規約を読む。プラグインの登録・hookの信頼・全モデルへのアクセスが確認済みとは扱わない。
-- 上流の固定モデルと別モデル族の指定は、実行対応がセッション継承で上書きする。Claude、GPT、Gemini へは自動で切り替えない。担当別設定は依頼された時だけ、リポジトリルートの Git 管理外 `.pstack-models.md` に置き、Git と新規プロジェクト複製へ持ち込まない。
+- 上流の固定モデルと別モデル族の指定は、実行対応がセッション継承で上書きする。サブエージェントの model 引数に禁止族（opus、sonnet、haiku、fable、claude、gpt- で始まる名前、codex:gpt で始まる名前、gemini で始まる名前）を渡す起動は失敗として止める。担当別設定は依頼された時だけ、リポジトリルートの Git 管理外 `.pstack-models.md` に置き、Git と新規プロジェクト複製へ持ち込まない。このファイルに禁止族の名前があれば検査は失敗する。
 - 開発管理はLinear、仕様と判断はdocs、コードとレビューはGit/GitHub。読み取りの相談・レビューだけで外部操作やPR作成を起動しない。
 - verifyのトップレベル正本と既存の必須検査を保持し、プロジェクト固有の実操作手順を加えられる。個人の全履歴・メモリ・グローバル設定を探索・更新しない。
 
@@ -42,6 +42,7 @@ Node.jsの検査が通ってもbunの長期運用・実PR監視・マージ・�
 
 ```sh
 python3 scripts/check_pstack.py
+python3 scripts/check-pstack-models
 bash scripts/sync-skills.sh --check
 python3 -B -m unittest discover -s scripts -p 'test_*.py'
 ```
