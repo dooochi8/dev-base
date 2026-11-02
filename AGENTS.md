@@ -8,7 +8,7 @@
 
 `poteto-mode/references/runtime.md` を読み、pstack-claudeの原文とplaybookをこの環境へ読み替える。依頼に合う手順だけを選び、担当分離、設計比較、独立レビュー、実物での検証を適用する。上位指示でサブエージェントが許可されない環境では工程を順に実行し、独立性の限界を報告する。
 
-`setup-pstack` で作られたルート `.pstack-models.md` がある時だけ担当設定を読む。標準はセッションのモデル・推論量の継承。プラグイン専用agent・hooks・複数モデルが利用可能だと仮定しない。[採用範囲](docs/pstack-adoption.md) を参照する。
+`setup-pstack` で作られたルート `.pstack-models.md` がある時だけ担当設定を読む。標準はセッションのモデル・推論量の継承である。上流が Claude、GPT、Gemini、別モデル族を指定しても自動では切り替えない。プラグイン専用agent・hooks・複数モデルが利用可能だと仮定しない。[採用範囲](docs/pstack-adoption.md) を参照する。
 
 ## 構造ルール
 

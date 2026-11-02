@@ -34,14 +34,18 @@ CodexのCode Modeでは、同じ段階の独立したfunctions.exec内ツール�
 - このskills-only配置では `pstack:poteto-agent`、`pstack:effort-*`、Comment Sickoの専用エージェントは登録していない。利用可能な通常エージェントへ、`poteto-mode/SKILL.md` と担当スキル、所有範囲、成果、検証、禁止事項を渡す。専用タイプの登録やプラグイン導入を成功したことにしない。
 - `interrogate` は読み取りレビュー。指摘を根拠と照合して採否を決める。レビュー依頼だけで修正を始めない。実装タスクの中では採用した指摘に起因する修正と再検証まで進める。
 - 書込担当には専用worktree・出力先を与える。同じファイルの編集、同じcheckoutでの編集と検査を競合させない。読み取り担当にも子担当の禁止事項と参照可能な範囲を引き継ぐ。
-- `opus` / `fable` / `sonnet` や上流のGPT名を固定して起動しない。指定がない担当はセッションのモデル・推論量を継承する。ユーザーが指定したモデルや推論量を優先し、その環境での利用可否と対応する引数を確認する。固定モデルのエージェント役割を選ぶ場合は、その制約を把握して報告する。
-- 複数モデルのパネルが指定・利用可能なら異なるモデルを使う。同一モデルの独立した実行は独立レビューとして報告し、複数モデルレビューとは呼ばない。代替モデルが必要でも、ユーザーの指定を黙って置き換えない。
+- 上流の Models、`references/codex-tools.md`、`references/pi-tools.md`、playbook が書く `opus` / `fable` / `sonnet` / `haiku`、GPT 名、Gemini 名、および「別モデル族でレビュー」は、この節が上書きする。それらの原文は書き換えない。
+- 全役割の既定はセッションのモデルと推論量の継承である。サブエージェントには `model` を渡さない。Claude、GPT、Gemini へは、多様性、レビュー、judge、verifier のためにも自動で切り替えない。
+- arena、architect、interrogate、how、why、reflect、swarm、eval の judge、show-me-your-work の監査、orchestrate の verifier も同じセッションモデルで独立に実行する。その結果を複数モデルレビューとは呼ばない。
+- ユーザーがモデル名の固定を依頼したときだけ、そのハーネスのツールが実際に受け付ける識別子を書く。確認できない識別子は推測として書かず、継承のままにする。
+- Cursor の Task ツールでは、2026-11-02 のこのクラウドエージェントセッションの `model` 一覧に Grok があった。形は `grok-4.7` と `cursor-grok-4.6` に、任意で `-low` / `-medium` / `-high` / `-xhigh`、さらに任意で `-fast` を付ける。この確認は Cursor の Task 引数であり、Mac の Cursor アプリや Codex CLI、Claude Code の Agent では未確認である。未確認のハーネスでは `model` を渡さない。
+- ユーザーが明示したモデルと推論量は、そのハーネスで指定できるときだけ優先する。指定できないときは継承し、切り替えていないと報告する。
 
 ## プロジェクト設定
 
 `setup-pstack` はこの対応表の設定方法を使う。依頼されたモデル設定だけを、Git管理外のプロジェクトルート `.pstack-models.md` へ書く。存在する場合は現在値を読んで必要な行だけ更新し、同じファイルを読み戻す。`poteto-mode` と各担当は、実行するリポジトリルートにこのファイルが存在する場合だけ読む。
 
-書式は上流のrole行に合わせる。例は `feature, refactoring: inherit-parent`、`interrogate reviewers: inherit-parent, inherit-parent`、`default effort: session`。後者は同一モデルの独立レビューであり、モデルの多様性はない。実モデルを指定する場合は、そのセッションで検証した識別子を使う。
+書式は上流の role 行に合わせる。既定は全 role を `inherit-parent`、`default effort: session` にする。パネルも `inherit-parent` のままにし、上流の `opus, fable, sonnet` や GPT 名は写さない。実モデルを書くのは、そのセッションのツール一覧で確認できた識別子だけである。
 
 本移植にはSessionStart hook・plugin manifest・Codex slash stub・Claude専用agent・Pi拡張を含めない。hook行は適用されない。標準入口はAGENTS.mdから選ぶ。setupの実行を理由に、グローバル設定・hook・MCP・承認・モデルへのアクセスを変更しない。モデルと推論量のプロジェクト既定は置かず、担当はセッションの選択を継承する。
 
