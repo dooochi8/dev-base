@@ -32,7 +32,6 @@
 | debug | 再現・仮説・切り分けの具体的な補助 |
 | verify | 必要なチェックと実物の動作を根拠に完了を判断する |
 | review-diff | 小さな差分のレビュー。独立した厳しいレビューはinterrogate |
-| search-first / security-review | 新しい依存や外部連携の比較、変更する信頼境界の確認 |
 | show-me / smart-docs | 図解、コードに基づく設計文書 |
 | Emilスキル群 | UI・操作感・動きの実装やレビュー。導入済みのスキルを用途に合わせて選ぶ |
 | empirical-prompt-tuning | スキル・指示の独立した実行評価 |

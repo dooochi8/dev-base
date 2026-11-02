@@ -39,7 +39,6 @@
 - pstackのtdd、deslop、no-comments、technical-writing、原則群は選んだ手順から必要時に使う。全スキル・全原則を毎回読まない。
 - 新規立ち上げ: project-start（開発ベース・GitHub・Linear・スキル一式）。既存アプリの実装やスキル追加だけでは実行しない。
 - 把握: orient / 要件: grill-me（一問ずつ）, grilling（独立質問をラウンドで）, write-a-prd / 分解: prd-to-issues / 受け渡し: plan-handoff
-- 依存・連携・共通機能を新設する前の調査: search-first。認証・認可・外部入力・秘密情報・決済の変更: security-review。
 - 実装前の計画レビュー: plan-eng-review（技術設計）, plan-design-review（画面・導線）。レビュー依頼だけでコードや仕様を書き換えない。
 - 既存名のdev-baseはpoteto-modeへの入口。debugは再現・切り分けの補助。確認はverify、簡単な差分レビューはreview-diff、設計改善はimprove-codebase-architecture。pstackの手順を重ねて二度実行しない。
 - 説明の図解: show-me / コードに基づく文書化: smart-docs / 指示の独立評価: empirical-prompt-tuning / 開発Issue: linear-workflow
@@ -47,8 +46,6 @@
 - スキルの追加・コピー依頼を、そのスキルの実行依頼と混同しない。必要なものだけ選び、全スキルを毎回実行しない。
 
 手順と既存スキルの接続は `docs/workflows.md`、上流の版・更新・実行依存は `docs/pstack-adoption.md` を参照。
-
-ECCの採用範囲・出典は `docs/ecc-adoption.md`。設定や上流を更新する時だけ参照し、全資料・全スキルの常時読込は行わない。
 
 ## Linear / Gitの開発運用
 

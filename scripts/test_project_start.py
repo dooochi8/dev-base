@@ -158,8 +158,7 @@ class BootstrapTests(unittest.TestCase):
         result = bootstrap.bootstrap(ROOT, self.destination, "sample-app", "隔離テスト", True, True)
         expected = sorted(p.parent.name for p in ROOT.glob("*/SKILL.md"))
         self.assertEqual(result["skills"], expected)
-        for relative in (".codex/config.toml", "docs/codex.md", "docs/ecc-adoption.md",
-                         "docs/third-party/ecc/LICENSE", "search-first/LICENSE", "security-review/LICENSE"):
+        for relative in (".codex/config.toml", "docs/codex.md"):
             self.assertEqual((self.destination / relative).read_bytes(), (ROOT / relative).read_bytes(), relative)
         check = subprocess.run(["bash", str(self.destination / "scripts/sync-skills.sh"), "--check"],
                                capture_output=True, text=True, timeout=20)

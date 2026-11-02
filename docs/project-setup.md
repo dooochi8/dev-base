@@ -10,7 +10,7 @@
 
 [pstackの採用資料・manifest・MITライセンス](pstack-adoption.md)と全スキルを複製します。個人の `.pstack-models.md` とプラグインhooksは複製しません。
 
-GPT-6 Astraのプロジェクト設定 `.codex/config.toml` とECC由来のスキル・出典・ライセンスも複製します。`.codex` の認証・履歴等は複製対象外です。[Codex設定](codex.md)で利用環境のモデル選択と信頼状態を確認してください。
+GPT-6 Astraのプロジェクト設定 `.codex/config.toml` も複製します。`.codex` の認証・履歴等は複製対象外です。[Codex設定](codex.md)で利用環境のモデル選択と信頼状態を確認してください。
 
 ## 複製する
 

@@ -49,8 +49,8 @@ CodexのCode Modeでは、同じ段階の独立したfunctions.exec内ツール�
 
 - 開発の目的・状態・完了条件は `linear-workflow` と `./scripts/linear`、仕様と設計判断はdocs、差分とレビューはGit/GitHub。GitHub Issuesへ二重起票しない。原文の「tracked issue」はこのLinear運用へ読み替える。
 - 原文のOpening a PRは、コード・スキル等を変更して成果を提示する時に使う。読み取りの調査・説明・レビューだけでは起票・コミット・PR作成を行わない。既存の未コミット変更を消したり、自分の変更と混ぜてコミットしたりしない。原文のreset・強制push・自動マージ例を許可と解釈しない。
-- 実装に必要なら `search-first`、認証・認可・外部入力・秘密情報・決済の境界には `security-review`。要件が未確定なら `grill-me` / `grilling` / `write-a-prd`、必要な実装前レビューには `plan-eng-review` / `plan-design-review` を使う。
-- 完了ゲートは既存の `verify`。pstackの実行面に合った検証と併用し、失敗・未実施・対象外を区別する。`create-verification-skill` はトップレベルの `verify/` のプロジェクト固有参照へ追加する。入口・既存の必須検査を消さず、`.agents/skills` や `.claude/skills` を直接編集しない。
+- 要件が未確定なら `grill-me` / `grilling` / `write-a-prd`、必要な実装前レビューには `plan-eng-review` / `plan-design-review` を使う。
+- 完了ゲートは既存の `verify`。pstackの実行面に合った検証と併用し、実行した出力と検証できなかった理由を分ける。`create-verification-skill` はトップレベルの `verify/` のプロジェクト固有参照へ追加する。入口・既存の必須検査を消さず、`.agents/skills` や `.claude/skills` を直接編集しない。
 - UIの実装と仕上げにはEmilスキル群。`prototype` 等の明示呼び出し条件は、移植を理由に解除しない。pstackの試作工程で必要なら利用可能な通常の実装方法で比較する。
 - スキルの作成・改訂はプラットフォームのskill-creator等を使う。トップレベル正本を編集して同期し、両入口を検査する。`reflect` の提案も同じ入口でレビューし、無関係な個人メモリや他プロジェクトを書き換えない。
 - `recall` / `reflect` / session pickupは現在の会話、対象Issue・ブランチ、利用が許可された対象チャットを使う。CodexでClaudeの全履歴を探索しない。取得できない履歴は作業要約で代替し、その限界を記録する。

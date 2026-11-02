@@ -11,8 +11,7 @@ import sys
 
 ROOT_FILES = ("AGENTS.md", "CLAUDE.md", ".gitignore", ".linear.example.json")
 DOCS = ("linear.md", "project-setup.md", "workflows.md", "skill-sources.md",
-        "codex.md", "ecc-adoption.md", "third-party/ecc/LICENSE",
-        "pstack-adoption.md", "pstack-manifest.json", "third-party/pstack-claude")
+        "codex.md", "pstack-adoption.md", "pstack-manifest.json", "third-party/pstack-claude")
 SKIP = {".git", ".agents", ".claude", "__pycache__", ".DS_Store", "node_modules",
         ".venv", "tmp", "dist", "coverage"}
 
