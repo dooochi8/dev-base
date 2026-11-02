@@ -36,16 +36,17 @@ CodexのCode Modeでは、同じ段階の独立したfunctions.exec内ツール�
 - 書込担当には専用worktree・出力先を与える。同じファイルの編集、同じcheckoutでの編集と検査を競合させない。読み取り担当にも子担当の禁止事項と参照可能な範囲を引き継ぐ。
 - 上流の Models、`references/codex-tools.md`、`references/pi-tools.md`、playbook が書く `opus` / `fable` / `sonnet` / `haiku`、GPT 名、Gemini 名、および「別モデル族でレビュー」は、この節が上書きする。それらの原文は書き換えない。
 - 全役割の既定はセッションのモデルと推論量の継承である。サブエージェントには `model` を渡さない。Claude、GPT、Gemini へは、多様性、レビュー、judge、verifier のためにも自動で切り替えない。
+- サブエージェント起動の model 引数（その環境の model、spawn_agent の model、Task の model を含む）が禁止族なら、起動せず失敗として止める。禁止族へ置き換えて再実行しない。ユーザーが禁止族を指名しても、その引数では起動しない。禁止族は、opus、sonnet、haiku、fable、claude とそれらを含む識別子、gpt- で始まる識別子、codex:gpt で始まる識別子、gemini で始まる識別子である。model を省略する起動、inherit-parent、auto、推論量だけの指定は許可する。`python3 scripts/check-pstack-models` は、ハッシュ固定の上流以外で禁止族が既定値になっていないかと、`.pstack-models.md` に禁止族の名前が無いかを検査する。上流ファイルは編集しない。
 - arena、architect、interrogate、how、why、reflect、swarm、eval の judge、show-me-your-work の監査、orchestrate の verifier も同じセッションモデルで独立に実行する。その結果を複数モデルレビューとは呼ばない。
-- ユーザーがモデル名の固定を依頼したときだけ、そのハーネスのツールが実際に受け付ける識別子を書く。確認できない識別子は推測として書かず、継承のままにする。
+- ユーザーが禁止族以外のモデル名の固定を依頼したときだけ、そのハーネスのツール一覧で確認できた識別子を書く。確認できない識別子は推測として書かず、継承のままにする。
 - Cursor の Task ツールでは、2026-11-02 のこのクラウドエージェントセッションの `model` 一覧に Grok があった。形は `grok-4.7` と `cursor-grok-4.6` に、任意で `-low` / `-medium` / `-high` / `-xhigh`、さらに任意で `-fast` を付ける。この確認は Cursor の Task 引数であり、Mac の Cursor アプリや Codex CLI、Claude Code の Agent では未確認である。未確認のハーネスでは `model` を渡さない。
-- ユーザーが明示したモデルと推論量は、そのハーネスで指定できるときだけ優先する。指定できないときは継承し、切り替えていないと報告する。
+- ユーザーが明示したモデルと推論量は、禁止族でなく、そのハーネスで指定できるときだけ優先する。禁止族のときは model を渡さず失敗として止める。指定できないときは継承し、切り替えていないと報告する。
 
 ## プロジェクト設定
 
 `setup-pstack` はこの対応表の設定方法を使う。依頼されたモデル設定だけを、Git管理外のプロジェクトルート `.pstack-models.md` へ書く。存在する場合は現在値を読んで必要な行だけ更新し、同じファイルを読み戻す。`poteto-mode` と各担当は、実行するリポジトリルートにこのファイルが存在する場合だけ読む。
 
-書式は上流の role 行に合わせる。既定は全 role を `inherit-parent`、`default effort: session` にする。パネルも `inherit-parent` のままにし、上流の `opus, fable, sonnet` や GPT 名は写さない。実モデルを書くのは、そのセッションのツール一覧で確認できた識別子だけである。
+書式は上流の role 行に合わせる。既定は全 role を `inherit-parent`、`default effort: session` にする。パネルも `inherit-parent` のままにし、上流の `opus, fable, sonnet` や GPT 名は写さない。禁止族の名前を role の値や `.pstack-models.md` に書くと、起動前の検査が失敗する。実モデルを書くのは、禁止族以外で、そのセッションのツール一覧で確認できた識別子だけである。
 
 本移植にはSessionStart hook・plugin manifest・Codex slash stub・Claude専用agent・Pi拡張を含めない。hook行は適用されない。標準入口はAGENTS.mdから選ぶ。setupの実行を理由に、グローバル設定・hook・MCP・承認・モデルへのアクセスを変更しない。モデルと推論量のプロジェクト既定は置かず、担当はセッションの選択を継承する。
 

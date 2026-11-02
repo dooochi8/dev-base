@@ -7,6 +7,8 @@ description: このプロジェクトのpstack担当別モデル・推論量を�
 
 [実行対応](../poteto-mode/references/runtime.md) の「担当とモデル」を先に読む。上流の Models とシート例にある Claude、GPT、Gemini の識別子は書かない。
 
+サブエージェントの model 引数、または `.pstack-models.md` の role 値に禁止族を書いたら、ファイルへ保存せず失敗として止める。禁止族は opus、sonnet、haiku、fable、claude とそれらを含む識別子、gpt- で始まる識別子、codex:gpt で始まる識別子、gemini で始まる識別子である。依頼がその名前でも起動しない。検査は `python3 scripts/check-pstack-models`。ハッシュ固定の上流は編集せず、検査対象からも外す。
+
 設定ファイルは、作業中リポジトリのルートにある Git 管理外 `.pstack-models.md` だけである。`~/.claude/pstack-models.md`、`~/.codex/pstack-models.md`、ホームの `AGENTS.md` は変更しない。
 
 Grok に揃える依頼でファイルが無いときは、全 role をセッション継承にする。別モデルへは切り替えない。
