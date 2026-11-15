@@ -30,6 +30,7 @@ description: 変更後に実際に動かして確認したいときに使う完�
    - テスト（ユニット・統合・E2E）
    - 型チェック（`tsc --noEmit` 等）
    - lint / formatter
+   - `harness-check`（`node scripts/harness-check.mjs`。ルールを変えたら `--self-test` も）
    - 実際の起動・実行（`npm run dev`、`curl` 等）
    - 手動確認が必要な場合はその手順を明示する。
 
@@ -63,6 +64,13 @@ description: 変更後に実際に動かして確認したいときに使う完�
 
 - 結果が ❌ のときは、出力の要点を引用して原因を示す。
 - 「検証できなかったこと」が存在する場合は必ず記載する。存在しない場合は「なし」と書く。
+
+## プロジェクト固有の検証
+
+- `verify/project.md` があれば、起動・Doctor・操作・証拠・後片付けをその手順で行う。
+- `verify/features/README.md` があれば、変更に関係する機能ファイルの入口をすべて操作する。一つの入口だけで機能全体を検証済みと書かない。
+- PRへ証拠を載せる時は `templates/harness/pr-evidence.md` の形を使う。
+- これらがまだないプロジェクトで実アプリの手順が必要なら、`create-verification-skill` で作る。導入状況は `docs/verification.md` にある。
 
 ## 実務上の判断
 

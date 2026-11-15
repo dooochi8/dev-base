@@ -10,14 +10,31 @@ import subprocess
 import sys
 
 ROOT_FILES = ("AGENTS.md", "CLAUDE.md", ".gitignore", ".linear.example.json")
-DOCS = ("linear.md", "project-setup.md", "workflows.md", "skill-sources.md",
-        "pstack-adoption.md", "pstack-manifest.json", "third-party/pstack-claude")
+DOCS = ("linear.md", "project-setup.md", "workflows.md", "skill-sources.md", "harness.md",
+        "harness-phase3.md", "pstack-adoption.md", "pstack-manifest.json", "third-party/pstack-claude")
+# Files a new project starts with, rendered from the copied templates (target: template).
+GENERATED = {"harness.config.json": "templates/harness/harness.config.json",
+             ".github/workflows/harness.yml": "templates/harness/workflow.yml",
+             "docs/verification.md": "templates/harness/verification-plan.md"}
+EMPTY_BASELINE = "harness-baseline.json"
 SKIP = {".git", ".agents", ".claude", "__pycache__", ".DS_Store", "node_modules",
         ".venv", "tmp", "dist", "coverage"}
 
 
 class BootstrapError(Exception):
     pass
+
+
+def adopted_rules(config_path):
+    """Rule ids of the harness template, recorded as adopted like `harness-check --init`."""
+    try:
+        rules = json.loads(config_path.read_text())["rules"]
+        ids = sorted(rule["id"] for rule in rules)
+    except (ValueError, KeyError, TypeError) as exc:
+        raise BootstrapError(f"ハーネスの設定を読めません: {exc}") from exc
+    if not all(isinstance(rule_id, str) and rule_id for rule_id in ids):
+        raise BootstrapError("ハーネスの設定に不正なルールIDがあります")
+    return ids
 
 
 def safe_file(path):
@@ -96,10 +113,15 @@ def bootstrap(source, destination, name, description, apply=False, allow_dirty=F
     # No nested Git repositories, even when the new directory does not exist yet.
     if any((ancestor / ".git").exists() for ancestor in [parent, *parent.parents]):
         raise BootstrapError("既存Gitリポジトリの中へは作成できません")
+    missing = [template for template in GENERATED.values() if Path(template) not in selected]
+    if missing:
+        raise BootstrapError(f"ハーネスの雛形がありません: {', '.join(missing)}")
+    baseline = {"adopted": adopted_rules(source / GENERATED["harness.config.json"])}
     provenance = source_git(source)
     hashes = {str(p): hashlib.sha256((source / p).read_bytes()).hexdigest() for p in selected}
     plan = {"name": name, "destination": str(destination), "skills": skills,
-            "source": provenance, "files": [str(p) for p in selected], "applied": False}
+            "source": provenance, "files": [str(p) for p in selected],
+            "generated": [*GENERATED, EMPTY_BASELINE], "applied": False}
     if not apply:
         return plan
     if provenance["dirty"] and not allow_dirty:
@@ -113,6 +135,11 @@ def bootstrap(source, destination, name, description, apply=False, allow_dirty=F
         target = destination / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(origin, target)
+    for target, template in GENERATED.items():
+        (destination / target).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(destination / template, destination / target)
+    # Same content as `harness-check --init` on a project with no source files yet.
+    (destination / EMPTY_BASELINE).write_text(json.dumps(baseline, indent=2) + "\n")
     for skill in skills:
         codex = destination / ".agents/skills" / skill
         codex.parent.mkdir(parents=True, exist_ok=True)
@@ -131,16 +158,21 @@ def bootstrap(source, destination, name, description, apply=False, allow_dirty=F
               "アプリの技術スタック・実装・実行コマンドは未定です。\n\n"
               "[開発ルール](AGENTS.md) / [初期設定](docs/project-setup.md) / "
               "[Linear](docs/linear.md) / [組み合わせ](docs/workflows.md) / "
-              "[pstack採用範囲](docs/pstack-adoption.md)\n\n"
+              "[pstack採用範囲](docs/pstack-adoption.md) / [ハーネス](docs/harness.md) / "
+              "[検証計画](docs/verification.md)\n\n"
               "## 共通スキル\n\n" + "\n".join(f"- [`{s}`]({s}/SKILL.md)" for s in skills) +
               "\n\n## 共通検査\n\n```sh\nbash scripts/sync-skills.sh --check\n"
-              "python3 -B -m unittest discover -s scripts -p 'test_*.py'\n```\n")
+              "python3 -B -m unittest discover -s scripts -p 'test_*.py'\n"
+              "node --test scripts/harness-check.test.mjs\n"
+              "node scripts/harness-check.mjs --self-test\n"
+              "node scripts/harness-check.mjs\n```\n")
     (destination / "README.md").write_text(readme)
     agents = destination / "AGENTS.md"
     agents.write_text(agents.read_text().replace("# dev-base (Codex 向け規約)", f"# {name} 開発ルール", 1)
                       .replace("複製して新しい開発を始めるための共通ベース。", "dev-baseを基にした新規プロジェクト。", 1))
     manifest = {"schemaVersion": 1, "name": name, "template": "dev-base", "source": provenance,
-                "skills": skills, "sourceFileHashes": hashes, "externalSetup": "not-run"}
+                "skills": skills, "sourceFileHashes": hashes, "generated": [*GENERATED, EMPTY_BASELINE],
+                "externalSetup": "not-run"}
     (destination / "docs/bootstrap.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
     plan["applied"] = True
     return plan

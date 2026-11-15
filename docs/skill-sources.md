@@ -21,3 +21,12 @@ grillingの取得元commit等は `grilling/references/upstream.md`、smart-docs�
 ## pstack-claudeへの基盤移行（2026-10-03 JST）
 
 HIRANO-426で `michael-denyer/pstack-claude` のcommit `b1f7a460cc52eecc2d913313a307d6e22bb440ff`、version `0.9.63` を採用。54本すべての原文・参照・補助スクリプトを保持し、日本語の入口を用意した。poteto-modeを標準入口に、既存dev-baseを接続入口へ変更し、tddはpstack版へ切り替えた。[採用範囲と出典](pstack-adoption.md) を参照。Emil・Linear等は補助として保持する。
+
+## ハーネス段階2の追加（2026-11-15）
+
+| 名前 | 導入元 | 内容 |
+|---|---|---|
+| user-statechart | dev-baseで新規作成。Lauren Tan氏の講演の「利用者視点の状態遷移図」と、上流pstack 0.9.138の `statechart` の書き方（読者の言葉のラベル、矢印20本程度）を参考にした | モデル検査を含まない図とコードの照合。上流の原文・スクリプトは含めていない |
+| mistake-to-rule | dev-baseで新規作成。`principle-encode-lessons-in-structure` の手順化 | 仕組みの強さの順序、`harness-check --self-test` による失敗の証明、既存違反の扱い |
+
+雛形は `templates/harness/`、設計は [ハーネス設計](harness.md) と [段階3の設計](harness-phase3.md)。
