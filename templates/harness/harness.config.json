@@ -1,17 +1,29 @@
 {
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["**/*.test.ts", "**/*.test.tsx", "**/*.property.ts", "**/*.d.ts"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ],
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.property.ts",
+    "**/*.d.ts"
+  ],
   "rules": [
     {
       "id": "raw-effect",
       "pattern": "\\buse(Layout)?Effect\\s*\\(",
-      "allow": ["src/platform/**"],
+      "allow": [
+        "src/platform/**"
+      ],
       "message": "生の useEffect / useLayoutEffect は使わない。派生値はレンダー中に計算し、操作の結果はイベントハンドラで処理する。外部システムとの同期が本当に必要なら、src/platform/ に名前付きフック（例: useInterval）を作り、そのフックをテストしてから使う。"
     },
     {
       "id": "raw-timer",
       "pattern": "\\b(setTimeout|setInterval|requestAnimationFrame|requestIdleCallback)\\s*\\(",
-      "allow": ["src/platform/**"],
+      "allow": [
+        "src/platform/**"
+      ],
       "message": "タイマーでタイミングを合わせない。順序の問題はデータフローと状態遷移を直して解消する。時間そのものが仕様（休憩タイマー等）なら src/platform/ のスケジューラ抽象を使う。"
     },
     {
@@ -33,6 +45,11 @@
       "id": "excuse-comment",
       "pattern": "(//|/\\*|^\\s*\\*).*(TODO|FIXME|HACK|XXX|[Ww]orkaround|暫定|とりあえず|後で直|あとで直|一時的|回避)",
       "message": "その場しのぎを説明するコメントを書かない。根本原因を直すか、直せない理由と影響を Issue に記録して人間に判断を求める。"
+    },
+    {
+      "id": "code-comment",
+      "pattern": "^(?!\\s*(///\\s*<reference|//\\s*@vitest-environment|/\\*\\*?\\s*@jsxImportSource))\\s*(//|/\\*|\\*(\\s|/|$))|\\s//\\s",
+      "message": "コードにコメントを書かない。名前・型・関数の分割で意図を表し、守らせたい制約は lint・型・テストで表す。コメントは古くなり、強制できず、その場しのぎの言い訳の置き場になる。どうしても必要な例外は人間が判断する。"
     }
   ]
 }

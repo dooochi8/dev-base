@@ -68,7 +68,7 @@ test("allow, exclude and per-rule include are respected", () => {
 test("init records existing debt, then only increases fail", () => {
   const root = project({ "src/a.ts": "setTimeout(a, 0);\n" });
   assert.equal(check(root, "--init").code, 0);
-  assert.deepEqual(baselineOf(root), { "raw-timer": { "src/a.ts": 1 } });
+  assert.deepEqual(baselineOf(root), { adopted: ["domain-react", "raw-timer"], "raw-timer": { "src/a.ts": 1 } });
   assert.equal(check(root).code, 0);
   writeFileSync(path.join(root, "src/a.ts"), "setTimeout(a, 0);\nsetTimeout(b, 0);\n");
   assert.equal(check(root).code, 1);
@@ -92,10 +92,31 @@ test("a fixed occurrence fails until pruned, and prune never grows the baseline"
   assert.match(stale.output, /--prune/);
   writeFileSync(path.join(root, "src/new.ts"), "setTimeout(n, 0);\n");
   assert.equal(check(root, "--prune").code, 0);
-  assert.deepEqual(baselineOf(root), { "raw-timer": { "src/a.ts": 1 } });
+  assert.deepEqual(baselineOf(root), { adopted: ["domain-react", "raw-timer"], "raw-timer": { "src/a.ts": 1 } });
   assert.equal(check(root).code, 1);
 });
 
 test("unknown arguments are rejected", () => {
   assert.throws(() => run(["--root", project({}), "--force"], () => {}), /Unknown argument/);
+});
+
+test("adopt records debt for a newly added rule exactly once", () => {
+  const root = project({ "src/a.ts": "setTimeout(a, 0);\n" });
+  writeFileSync(path.join(root, "harness-baseline.json"), JSON.stringify({ adopted: ["domain-react"] }));
+  assert.equal(check(root).code, 1);
+  assert.equal(check(root, "--adopt", "raw-timer").code, 0);
+  assert.deepEqual(baselineOf(root), { adopted: ["domain-react", "raw-timer"], "raw-timer": { "src/a.ts": 1 } });
+  assert.equal(check(root).code, 0);
+  assert.equal(check(root, "--adopt", "raw-timer").code, 1);
+  assert.equal(check(root, "--adopt", "domain-react").code, 1);
+  assert.equal(check(root, "--adopt", "missing-rule").code, 1);
+});
+
+test("prune keeps the adopted list", () => {
+  const root = project({ "src/a.ts": "setTimeout(a, 0);\n" });
+  check(root, "--init");
+  writeFileSync(path.join(root, "src/a.ts"), "export {};\n");
+  check(root, "--prune");
+  assert.deepEqual(baselineOf(root), { adopted: ["domain-react", "raw-timer"] });
+  assert.equal(check(root).code, 0);
 });

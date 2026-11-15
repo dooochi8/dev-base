@@ -92,8 +92,9 @@ export function countsOf(findings) {
 
 export function prune(baseline, findings) {
   const actual = countsOf(findings);
-  const next = {};
+  const next = baseline.adopted ? { adopted: baseline.adopted } : {};
   for (const [ruleId, files] of Object.entries(baseline)) {
+    if (ruleId === "adopted") continue;
     for (const [file, limit] of Object.entries(files)) {
       const count = Math.min(limit, actual[ruleId]?.[file] ?? 0);
       if (count > 0) (next[ruleId] ??= {})[file] = count;
@@ -120,6 +121,10 @@ function parseArguments(argv) {
     else if (argument === "--baseline") options.baseline = argv[(index += 1)];
     else if (argument === "--init") options.mode = "init";
     else if (argument === "--prune") options.mode = "prune";
+    else if (argument === "--adopt") {
+      options.mode = "adopt";
+      options.rule = argv[(index += 1)];
+    }
     else throw new Error(`Unknown argument: ${argument}`);
   }
   return options;
@@ -137,12 +142,29 @@ export function run(argv, log = console.log) {
       log(`harness: ${options.baseline} already exists. Use --prune to shrink it; the baseline never grows.`);
       return 1;
     }
-    writeJson(baselinePath, countsOf(findings));
+    writeJson(baselinePath, { adopted: config.rules.map((rule) => rule.id).toSorted(), ...countsOf(findings) });
     log(`harness: wrote ${options.baseline}.`);
     return 0;
   }
 
   const baseline = existsSync(baselinePath) ? JSON.parse(readFileSync(baselinePath, "utf8")) : {};
+
+  if (options.mode === "adopt") {
+    if (!config.rules.some((rule) => rule.id === options.rule)) {
+      log(`harness: rule ${options.rule} is not in ${options.config}.`);
+      return 1;
+    }
+    if (Object.hasOwn(baseline, options.rule) || baseline.adopted?.includes(options.rule)) {
+      log(`harness: rule ${options.rule} is already adopted. The baseline never grows.`);
+      return 1;
+    }
+    const counts = countsOf(findings)[options.rule];
+    const next = { ...baseline, adopted: [...(baseline.adopted ?? []), options.rule].toSorted() };
+    if (counts) next[options.rule] = counts;
+    writeJson(baselinePath, next);
+    log(`harness: adopted ${options.rule} with ${Object.keys(counts ?? {}).length} files of existing debt.`);
+    return 0;
+  }
 
   if (options.mode === "prune") {
     writeJson(baselinePath, prune(baseline, findings));
