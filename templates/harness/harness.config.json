@@ -1,0 +1,38 @@
+{
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["**/*.test.ts", "**/*.test.tsx", "**/*.property.ts", "**/*.d.ts"],
+  "rules": [
+    {
+      "id": "raw-effect",
+      "pattern": "\\buse(Layout)?Effect\\s*\\(",
+      "allow": ["src/platform/**"],
+      "message": "生の useEffect / useLayoutEffect は使わない。派生値はレンダー中に計算し、操作の結果はイベントハンドラで処理する。外部システムとの同期が本当に必要なら、src/platform/ に名前付きフック（例: useInterval）を作り、そのフックをテストしてから使う。"
+    },
+    {
+      "id": "raw-timer",
+      "pattern": "\\b(setTimeout|setInterval|requestAnimationFrame|requestIdleCallback)\\s*\\(",
+      "allow": ["src/platform/**"],
+      "message": "タイマーでタイミングを合わせない。順序の問題はデータフローと状態遷移を直して解消する。時間そのものが仕様（休憩タイマー等）なら src/platform/ のスケジューラ抽象を使う。"
+    },
+    {
+      "id": "explicit-any",
+      "pattern": "(:\\s*any\\b|\\bas\\s+any\\b|<any>|\\bany\\[\\])",
+      "message": "any で型を消さない。外部入力は境界で unknown として受け、パース関数で型を確定させる。"
+    },
+    {
+      "id": "type-escape",
+      "pattern": "(@ts-ignore|@ts-expect-error|@ts-nocheck|\\bas\\s+unknown\\s+as\\b)",
+      "message": "型エラーを抑制・二重キャストで黙らせない。型定義かデータの形を直す。"
+    },
+    {
+      "id": "lint-suppression",
+      "pattern": "(eslint-disable|oxlint-disable|biome-ignore)",
+      "message": "lint を無効化しない。ルールが誤っているなら設定の変更を人間に提案し、正しいならコードを直す。"
+    },
+    {
+      "id": "excuse-comment",
+      "pattern": "(//|/\\*|^\\s*\\*).*(TODO|FIXME|HACK|XXX|[Ww]orkaround|暫定|とりあえず|後で直|あとで直|一時的|回避)",
+      "message": "その場しのぎを説明するコメントを書かない。根本原因を直すか、直せない理由と影響を Issue に記録して人間に判断を求める。"
+    }
+  ]
+}
