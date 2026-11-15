@@ -53,10 +53,13 @@ export function scan(root, config) {
     for (const rule of config.rules) {
       if (rule.include && !matchesAny(file, rule.include)) continue;
       if (matchesAny(file, rule.allow) || matchesAny(file, rule.exclude)) continue;
-      const pattern = new RegExp(rule.pattern, rule.flags ?? "");
+      const flags = rule.flags ?? "";
+      const pattern = new RegExp(rule.pattern, flags.includes("g") ? flags : `${flags}g`);
       const hits = [];
       lines.forEach((line, index) => {
-        if (pattern.test(line)) hits.push({ line: index + 1, text: line.trim() });
+        for (const match of line.matchAll(pattern)) {
+          if (match[0].length > 0) hits.push({ line: index + 1, text: line.trim() });
+        }
       });
       if (hits.length > 0) (findings[rule.id] ??= {})[file] = hits;
     }

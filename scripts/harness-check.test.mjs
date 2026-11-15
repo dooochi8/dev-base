@@ -120,3 +120,31 @@ test("prune keeps the adopted list", () => {
   assert.deepEqual(baselineOf(root), { adopted: ["domain-react", "raw-timer"] });
   assert.equal(check(root).code, 0);
 });
+
+test("counts every occurrence on the same line", () => {
+  const root = project({ "src/a.ts": "setTimeout(a, 0);\n" });
+  check(root, "--init");
+  writeFileSync(path.join(root, "src/a.ts"), "setTimeout(a, 0); setTimeout(b, 0);\n");
+  const { code, output } = check(root);
+  assert.equal(code, 1);
+  assert.match(output, /src\/a\.ts: 2 found, 1 allowed/);
+});
+
+test("the template rules catch any in every type position and inline block comments", () => {
+  const template = JSON.parse(readFileSync(new URL("../templates/harness/harness.config.json", import.meta.url), "utf8"));
+  const pattern = (id) => new RegExp(template.rules.find((rule) => rule.id === id).pattern);
+  const anyRule = pattern("explicit-any");
+  for (const line of ["let a: any;", "x as any", "type X = any;", "Record<string, any>", "string | any", "Array<any>", "any[]", "f(a, any)"]) {
+    assert.ok(anyRule.test(line), line);
+  }
+  for (const line of ["const anyValue = 1;", "if (items.some(Boolean)) {}", "const many = 2;", "const message = \"pick any\";"]) {
+    assert.ok(!anyRule.test(line), line);
+  }
+  const commentRule = pattern("code-comment");
+  for (const line of ["// note", "/* note */", " * note", "run(); // note", "const x = /* note */ 1;", "foo(/* note */ value);"]) {
+    assert.ok(commentRule.test(line), line);
+  }
+  for (const line of ["const url = \"https://example.com\";", "const glob = \"src/**/*.ts\";", "/// <reference types=\"vite/client\" />", "const total = a * b;"]) {
+    assert.ok(!commentRule.test(line), line);
+  }
+});

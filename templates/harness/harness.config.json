@@ -28,8 +28,8 @@
     },
     {
       "id": "explicit-any",
-      "pattern": "(:\\s*any\\b|\\bas\\s+any\\b|<any>|\\bany\\[\\])",
-      "message": "any で型を消さない。外部入力は境界で unknown として受け、パース関数で型を確定させる。"
+      "pattern": "(:\\s*any\\b|\\bas\\s+any\\b|<\\s*any\\b|\\bany\\s*\\[\\]|[|&,=]\\s*any\\b(?!\\s*[:=(]))",
+      "message": "any で型を消さない。外部入力は境界で unknown として受け、パース関数で型を確定させる。lint（typescript/no-explicit-any）が使えるプロジェクトでは、構文木で検出するそちらも有効にする。"
     },
     {
       "id": "type-escape",
@@ -48,7 +48,7 @@
     },
     {
       "id": "code-comment",
-      "pattern": "^(?!\\s*(///\\s*<reference|//\\s*@vitest-environment|/\\*\\*?\\s*@jsxImportSource))\\s*(//|/\\*|\\*(\\s|/|$))|\\s//\\s",
+      "pattern": "^(?!\\s*(///\\s*<reference|//\\s*@vitest-environment|/\\*\\*?\\s*@jsxImportSource))\\s*(//|/\\*|\\*(\\s|/|$))|\\s//\\s|[\\s(,=]/\\*",
       "message": "コードにコメントを書かない。名前・型・関数の分割で意図を表し、守らせたい制約は lint・型・テストで表す。コメントは古くなり、強制できず、その場しのぎの言い訳の置き場になる。どうしても必要な例外は人間が判断する。"
     }
   ]
