@@ -51,6 +51,7 @@
 - 新規立ち上げ: project-start（開発ベース・GitHub・Linear・スキル一式）。既存アプリの実装やスキル追加だけでは実行しない。
 - 把握: orient / 要件: grill-me（一問ずつ）, grilling（独立質問をラウンドで）, write-a-prd / 分解: prd-to-issues / 受け渡し: plan-handoff
 - 実装前の計画レビュー: plan-eng-review（技術設計）, plan-design-review（画面・導線）。レビュー依頼だけでコードや仕様を書き換えない。
+- 状態の多いフローの図と照合: user-statechart / エージェントのミスを型・lint・harnessルールへ: mistake-to-rule。検証の段階的な導入は `docs/harness.md`。
 - 既存名のdev-baseはpoteto-modeへの入口。debugは再現・切り分けの補助。確認はverify、簡単な差分レビューはreview-diff、設計改善はimprove-codebase-architecture。pstackの手順を重ねて二度実行しない。
 - 説明の図解: show-me / コードに基づく文書化: smart-docs / 指示の独立評価: empirical-prompt-tuning / 開発Issue: linear-workflow
 - 利用者向けUIの仕上げ・操作感・アニメーション: emil-design-eng。既存のデザインシステムとアクセシビリティを守る。

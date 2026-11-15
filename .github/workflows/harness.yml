@@ -14,3 +14,5 @@ jobs:
           node-version: 22
       - name: Test the harness checker
         run: node --test scripts/harness-check.test.mjs
+      - name: Prove the template rules can fail
+        run: node scripts/harness-check.mjs --config templates/harness/harness.config.json --self-test

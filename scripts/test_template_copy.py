@@ -43,7 +43,14 @@ class TemplateCopyTests(unittest.TestCase):
                      "emil-design-eng/UPSTREAM.md", "emil-design-eng/LICENSE",
                      "plan-eng-review/SKILL.md", "plan-design-review/SKILL.md",
                      "project-start/SKILL.md", "project-start/scripts/bootstrap.py",
-                     "project-start/references/connections.md"]
+                     "project-start/references/connections.md",
+                     "docs/harness.md", "docs/harness-phase3.md",
+                     "templates/harness/harness.config.json", "templates/harness/workflow.yml",
+                     "templates/harness/verification-plan.md", "templates/harness/verify-project.md",
+                     "templates/harness/features/README.md", "templates/harness/features/feature.md",
+                     "templates/harness/pr-evidence.md",
+                     "user-statechart/SKILL.md", "user-statechart/references/template.md",
+                     "mistake-to-rule/SKILL.md"]
         for resource in resources:
             self.assertTrue((ROOT / resource).is_file(), resource)
 

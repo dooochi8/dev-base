@@ -46,6 +46,12 @@ export function listFiles(root, config) {
     .toSorted();
 }
 
+function occurrences(rule) {
+  const flags = rule.flags ?? "";
+  const pattern = new RegExp(rule.pattern, flags.includes("g") ? flags : `${flags}g`);
+  return (line) => [...line.matchAll(pattern)].filter((match) => match[0].length > 0).length;
+}
+
 export function scan(root, config) {
   const findings = {};
   for (const file of listFiles(root, config)) {
@@ -53,13 +59,10 @@ export function scan(root, config) {
     for (const rule of config.rules) {
       if (rule.include && !matchesAny(file, rule.include)) continue;
       if (matchesAny(file, rule.allow) || matchesAny(file, rule.exclude)) continue;
-      const flags = rule.flags ?? "";
-      const pattern = new RegExp(rule.pattern, flags.includes("g") ? flags : `${flags}g`);
+      const count = occurrences(rule);
       const hits = [];
       lines.forEach((line, index) => {
-        for (const match of line.matchAll(pattern)) {
-          if (match[0].length > 0) hits.push({ line: index + 1, text: line.trim() });
-        }
+        for (let hit = 0; hit < count(line); hit += 1) hits.push({ line: index + 1, text: line.trim() });
       });
       if (hits.length > 0) (findings[rule.id] ??= {})[file] = hits;
     }
@@ -106,6 +109,21 @@ export function prune(baseline, findings) {
   return next;
 }
 
+export function selfTest(config) {
+  const failures = [];
+  for (const rule of config.rules) {
+    const { bad = [], good = [] } = rule.examples ?? {};
+    if (bad.length === 0 || good.length === 0) {
+      failures.push(`[${rule.id}] needs examples.bad and examples.good: one line the rule must catch, one correct line it must not`);
+      continue;
+    }
+    const count = occurrences(rule);
+    for (const line of bad) if (count(line) === 0) failures.push(`[${rule.id}] misses bad example: ${line}`);
+    for (const line of good) if (count(line) > 0) failures.push(`[${rule.id}] flags good example: ${line}`);
+  }
+  return failures;
+}
+
 function sortKeys(value) {
   if (Array.isArray(value) || value === null || typeof value !== "object") return value;
   return Object.fromEntries(Object.keys(value).toSorted().map((key) => [key, sortKeys(value[key])]));
@@ -128,6 +146,7 @@ function parseArguments(argv) {
       options.mode = "adopt";
       options.rule = argv[(index += 1)];
     }
+    else if (argument === "--self-test") options.mode = "self-test";
     else throw new Error(`Unknown argument: ${argument}`);
   }
   return options;
@@ -138,6 +157,15 @@ export function run(argv, log = console.log) {
   const configPath = path.resolve(options.root, options.config);
   const baselinePath = path.resolve(options.root, options.baseline);
   const config = JSON.parse(readFileSync(configPath, "utf8"));
+
+  if (options.mode === "self-test") {
+    const failures = selfTest(config);
+    for (const failure of failures) log(`✖ ${failure}`);
+    if (failures.length > 0) return 1;
+    log(`harness: ${config.rules.length} rules caught their bad examples and spared their good ones.`);
+    return 0;
+  }
+
   const findings = scan(options.root, config);
 
   if (options.mode === "init") {

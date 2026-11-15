@@ -3,6 +3,7 @@ from copy import deepcopy
 import importlib.util
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -28,10 +29,12 @@ class BootstrapTests(unittest.TestCase):
         for relative in [*bootstrap.ROOT_FILES, *(f"docs/{n}" for n in bootstrap.DOCS),
                          "scripts/sync-skills.sh", "templates/linear-issue.md",
                          ".github/PULL_REQUEST_TEMPLATE.md", "dev-base/SKILL.md",
-                         "dev-base/agents/openai.yaml", "dev-base/references/example.md"]:
+                         "dev-base/agents/openai.yaml", "dev-base/references/example.md",
+                         ".github/workflows/harness.yml", *bootstrap.GENERATED.values()]:
             target = self.source / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text("content\n")
+        (self.source / "templates/harness/harness.config.json").write_text('{"rules": [{"id": "raw-timer"}]}\n')
         self.destination = self.root / "new project"
         self.git_state = patch.object(bootstrap, "source_git", return_value={"head": "a" * 40, "dirty": False})
         self.git_state.start()
@@ -61,6 +64,37 @@ class BootstrapTests(unittest.TestCase):
         manifest = json.loads((self.destination / "docs/bootstrap.json").read_text())
         self.assertEqual(manifest["externalSetup"], "not-run")
         self.assertNotIn(str(self.source), json.dumps(manifest))
+
+    def test_clone_starts_with_harness_check_and_phase2_scaffold(self):
+        config = '{"rules": [{"id": "raw-timer"}, {"id": "explicit-any"}]}\n'
+        (self.source / "templates/harness/harness.config.json").write_text(config)
+        (self.source / "templates/harness/workflow.yml").write_text("clone workflow\n")
+        (self.source / "templates/harness/verification-plan.md").write_text("# 検証計画\n")
+        plan = self.run_bootstrap()
+        self.assertEqual(sorted(plan["generated"]), sorted([*bootstrap.GENERATED, "harness-baseline.json"]))
+        self.run_bootstrap(apply=True)
+        self.assertEqual((self.destination / "harness.config.json").read_text(), config)
+        self.assertEqual(json.loads((self.destination / "harness-baseline.json").read_text()),
+                         {"adopted": ["explicit-any", "raw-timer"]})
+        self.assertEqual((self.destination / ".github/workflows/harness.yml").read_text(), "clone workflow\n")
+        self.assertEqual((self.destination / "docs/verification.md").read_text(), "# 検証計画\n")
+        self.assertEqual((self.destination / "templates/harness/workflow.yml").read_text(), "clone workflow\n")
+        self.assertIn("harness-check.mjs", (self.destination / "README.md").read_text())
+        manifest = json.loads((self.destination / "docs/bootstrap.json").read_text())
+        self.assertIn("harness-baseline.json", manifest["generated"])
+
+    def test_unreadable_harness_config_fails_before_creation(self):
+        for broken in ("not json", '{"rules": [{"pattern": "x"}]}'):
+            (self.source / "templates/harness/harness.config.json").write_text(broken)
+            with self.assertRaises(bootstrap.BootstrapError):
+                self.run_bootstrap()
+            self.assertFalse(self.destination.exists())
+
+    def test_missing_harness_template_fails_before_creation(self):
+        (self.source / "templates/harness/workflow.yml").unlink()
+        with self.assertRaises(bootstrap.BootstrapError):
+            self.run_bootstrap()
+        self.assertFalse(self.destination.exists())
 
     def test_existing_directory_even_empty_is_not_overwritten(self):
         self.destination.mkdir()
@@ -167,6 +201,27 @@ class BootstrapTests(unittest.TestCase):
                                      capture_output=True, text=True, timeout=10)
         self.assertEqual(help_result.returncode, 0, help_result.stderr)
         self.assertIn("project-create", help_result.stdout)
+        for relative in ("harness.config.json", "harness-baseline.json", "docs/verification.md",
+                         "docs/harness.md", "docs/harness-phase3.md", "templates/harness/pr-evidence.md",
+                         "mistake-to-rule/SKILL.md", "user-statechart/SKILL.md"):
+            self.assertTrue((self.destination / relative).is_file(), relative)
+        if shutil.which("node") is None:
+            self.skipTest("node is not installed; harness-check was not run in the copy")
+        for flags in ([], ["--self-test"]):
+            harness = subprocess.run(["node", "scripts/harness-check.mjs", *flags], cwd=self.destination,
+                                     capture_output=True, text=True, timeout=20)
+            self.assertEqual(harness.returncode, 0, harness.stdout + harness.stderr)
+        src = self.destination / "src"
+        src.mkdir()
+        (src / "late.ts").write_text("setTimeout(() => render(), 100);\n")
+        readopt = subprocess.run(["node", "scripts/harness-check.mjs", "--adopt", "raw-timer"], cwd=self.destination,
+                                 capture_output=True, text=True, timeout=20)
+        self.assertEqual(readopt.returncode, 1, readopt.stdout)
+        self.assertIn("already adopted", readopt.stdout)
+        regression = subprocess.run(["node", "scripts/harness-check.mjs"], cwd=self.destination,
+                                    capture_output=True, text=True, timeout=20)
+        self.assertEqual(regression.returncode, 1, regression.stdout)
+        self.assertIn("[raw-timer] src/late.ts", regression.stdout)
 
 
 class ProjectCreateTests(unittest.TestCase):

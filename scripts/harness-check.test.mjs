@@ -148,3 +148,62 @@ test("the template rules catch any in every type position and inline block comme
     assert.ok(!commentRule.test(line), line);
   }
 });
+
+function selfTest(rules) {
+  const root = mkdtempSync(path.join(tmpdir(), "harness-self-"));
+  writeFileSync(path.join(root, "harness.config.json"), JSON.stringify({ include: ["src/**"], rules }));
+  return check(root, "--self-test");
+}
+
+const timerRule = {
+  id: "raw-timer",
+  pattern: "\\bsetTimeout\\s*\\(",
+  message: "use the scheduler",
+  examples: { bad: ["setTimeout(run, 0);"], good: ["clearTimeout(handle);", "scheduler.after(delay, run);"] },
+};
+
+test("self-test passes when every rule catches its bad examples and spares its good ones", () => {
+  const { code, output } = selfTest([timerRule]);
+  assert.equal(code, 0, output);
+  assert.match(output, /1 rules/);
+});
+
+test("self-test fails on a bad example the pattern misses", () => {
+  const rule = { ...timerRule, examples: { ...timerRule.examples, bad: ["setTimeout(run, 0);", "setInterval(run, 10);"] } };
+  const { code, output } = selfTest([rule]);
+  assert.equal(code, 1);
+  assert.match(output, /\[raw-timer\] misses bad example: setInterval\(run, 10\);/);
+});
+
+test("self-test fails on a good example the pattern flags", () => {
+  const rule = { ...timerRule, pattern: "Timeout\\s*\\(" };
+  const { code, output } = selfTest([rule]);
+  assert.equal(code, 1);
+  assert.match(output, /\[raw-timer\] flags good example: clearTimeout\(handle\);/);
+});
+
+test("self-test requires both bad and good examples", () => {
+  for (const examples of [undefined, { bad: ["setTimeout(run, 0);"] }, { bad: [], good: ["run();"] }]) {
+    const { code, output } = selfTest([{ ...timerRule, examples }]);
+    assert.equal(code, 1);
+    assert.match(output, /\[raw-timer\] needs examples\.bad and examples\.good/);
+  }
+});
+
+test("self-test does not read the baseline or scan files", () => {
+  const root = project({ "src/a.ts": "setTimeout(a, 0);\n" });
+  writeFileSync(path.join(root, "harness.config.json"), JSON.stringify({ ...config, rules: [timerRule] }));
+  assert.equal(check(root, "--self-test").code, 0);
+});
+
+test("the shipped template rules pass their own self-test", () => {
+  const template = path.join(import.meta.dirname, "..", "templates", "harness", "harness.config.json");
+  const output = [];
+  const code = run(["--config", template, "--self-test"], (line) => output.push(line));
+  assert.equal(code, 0, output.join("\n"));
+});
+
+test("self-test matches lines the same way as the scan, even with a g flag", () => {
+  const rule = { ...timerRule, flags: "g", examples: { bad: ["setTimeout(a, 0);", "setTimeout(b, 0);"], good: ["run();"] } };
+  assert.equal(selfTest([rule]).code, 0);
+});

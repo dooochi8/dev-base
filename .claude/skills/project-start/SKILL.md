@@ -32,7 +32,8 @@ python3 "$SKILL_DIR/scripts/bootstrap.py" --source "$BASE" --dest "$DEST" --name
 
 未コミット内容を含むことを確認済みのベースだけ `--allow-dirty-source` を付ける。既定はdry-runで、既存ディレクトリには空でも上書きしない。Git履歴、remote、認証ファイル、複製元のLinear接続は持ち込まず、正本スキルと共通資料だけをコピーして両クライアントの入口を生成する。
 
-4. 出力先のREADME、AGENTS、`docs/bootstrap.json` とスキル数を再取得する。数を19/20へ固定せず、現在のベースで確認した一覧と照合する。未決の技術は候補・未定と書き、minori_v2の仕様やIDを新製品の決定事項としてコピーしない。
+4. 複製先には、最初から段階1・2のハーネスが入る。ルートの `harness.config.json` と、違反0件で全ルールを採用済みにした `harness-baseline.json`（`--init` と同じ内容）、試験・`--self-test`・検査を行う `.github/workflows/harness.yml`、段階2の導入状況を記録する `docs/verification.md`、`templates/harness/` の雛形（機能マップ、検証手順、PRの検証成果物）。dry-runの `generated` で生成するファイルを確認する。`harness.config.json` の `include` と `allow` は、技術スタックを決めた時に構成へ合わせる。
+5. 出力先のREADME、AGENTS、`docs/bootstrap.json` とスキル数を再取得する。数を19/20へ固定せず、現在のベースで確認した一覧と照合する。未決の技術は候補・未定と書き、minori_v2の仕様やIDを新製品の決定事項としてコピーしない。
 
 ## GitHub・Linearを接続する
 
@@ -48,10 +49,13 @@ python3 "$SKILL_DIR/scripts/bootstrap.py" --source "$BASE" --dest "$DEST" --name
 ```bash
 bash scripts/sync-skills.sh --check
 python3 -B -m unittest discover -s scripts -p 'test_*.py'
+node --test scripts/harness-check.test.mjs
+node scripts/harness-check.mjs --self-test
+node scripts/harness-check.mjs
 ./scripts/linear doctor
 ```
 
-最初の2つは外部書込なしで行う。Linear未接続ならdoctor成功とは報告しない。スキル配置検査と実アプリの試験、自動発動・対話品質の評価を区別する。
+`doctor` 以外は外部書込なしで行う。Node.jsがなければハーネスの3つは未実施と報告する。Linear未接続ならdoctor成功とは報告しない。スキル配置検査と実アプリの試験、自動発動・対話品質の評価を区別する。
 
 完了報告はローカルパス、GitHub URL/公開範囲/初回push、Linear Project/Issue/状態、スキル一覧と件数、検証結果、未完了を短く示す。次の一手は既存要件があれば最初の薄い実装、曖昧なら `grill-me` / `write-a-prd`。すべてのスキルを一斉に実行しない。
 

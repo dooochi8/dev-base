@@ -36,7 +36,8 @@ git remote add origin <新しいリポジトリのURL>
 5. `doctor` と `list` で接続先・状態・既存Issueを確認する。
 6. 製品要件、設計判断、受入条件をdocsへ保存し、最初の機能・成果単位のIssueを起こす。
 7. 採用技術に合わせてコードと実行コマンドを追加する。PoC前の候補を採用済みと書かない。
-8. コードを置いたら [ハーネス](harness.md) の導入手順に従い、`scripts/harness-check.mjs` と `harness.config.json` を検証コマンドとCIへ入れる。
+8. `project-start` の複製には `harness.config.json`、全ルールを採用済みにした `harness-baseline.json`、ハーネスのCIが最初から入っている。コードを置いたら `include` と `allow` を構成に合わせ、パッケージの検証コマンドへ `node scripts/harness-check.mjs` を入れる。手で複製した場合は [ハーネス](harness.md) の導入手順に従う。
+9. 最初の利用者向け機能が動いたら、[段階2](harness.md#段階2検証パイプライン) に沿って `create-verification-skill` で検証手順と機能マップを作り、`docs/verification.md` を更新する。
 
 既存のNotion日常タスクは移行しません。機能単位のLinear IssueとGitHub PRを結び、GUI操作や外部設定も完了条件と確認記録を残します。
 
@@ -47,6 +48,7 @@ git remote add origin <新しいリポジトリのURL>
 python3 scripts/check-pstack-models
 python3 -B -m unittest discover -s scripts -p 'test_*.py'
 node --test scripts/harness-check.test.mjs
+node scripts/harness-check.mjs --config templates/harness/harness.config.json --self-test
 ./scripts/linear doctor
 ```
 
