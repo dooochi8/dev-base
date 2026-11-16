@@ -62,7 +62,8 @@ export function scan(root, config) {
       const count = occurrences(rule);
       const hits = [];
       lines.forEach((line, index) => {
-        for (let hit = 0; hit < count(line); hit += 1) hits.push({ line: index + 1, text: line.trim() });
+        const matches = count(line);
+        for (let hit = 0; hit < matches; hit += 1) hits.push({ line: index + 1, text: line.trim() });
       });
       if (hits.length > 0) (findings[rule.id] ??= {})[file] = hits;
     }
