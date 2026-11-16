@@ -16,12 +16,21 @@ export function inspectCopy({ name, checkerSource, config, canonicalSource }) {
   if (checkerSource === null) problems.push("scripts/harness-check.mjs がない");
   else if (checkerSource !== canonicalSource) problems.push(`scripts/harness-check.mjs が正本と違う（${digest(checkerSource)}、正本は ${digest(canonicalSource)}）`);
   if (config === null) problems.push("harness.config.json がない");
-  else for (const failure of selfTest(config)) problems.push(`self-test: ${failure}`);
+  else if (config !== undefined) for (const failure of selfTest(config)) problems.push(`self-test: ${failure}`);
   return { name, problems };
 }
 
 function readIfExists(file) {
   return existsSync(file) ? readFileSync(file, "utf8") : null;
+}
+
+function parseConfig(source) {
+  if (source === null) return { config: null, problem: null };
+  try {
+    return { config: JSON.parse(source), problem: null };
+  } catch (error) {
+    return { config: undefined, problem: `harness.config.json を JSON として読めない（${error instanceof Error ? error.message : String(error)}）` };
+  }
 }
 
 export function run(argv, { log = console.log, canonicalSource = readFileSync(canonicalPath, "utf8") } = {}) {
@@ -31,13 +40,14 @@ export function run(argv, { log = console.log, canonicalSource = readFileSync(ca
   }
   let drifted = 0;
   for (const repository of argv) {
-    const configSource = readIfExists(path.join(repository, "harness.config.json"));
+    const parsed = parseConfig(readIfExists(path.join(repository, "harness.config.json")));
     const result = inspectCopy({
       name: path.basename(path.resolve(repository)),
       checkerSource: readIfExists(path.join(repository, "scripts/harness-check.mjs")),
-      config: configSource === null ? null : JSON.parse(configSource),
+      config: parsed.config,
       canonicalSource,
     });
+    if (parsed.problem !== null) result.problems.unshift(parsed.problem);
     if (result.problems.length === 0) {
       log(`✔ ${result.name}: 正本（${digest(canonicalSource)}）と同じで、全ルールが self-test を通る`);
       continue;

@@ -60,3 +60,13 @@ test("ファイルがなければ、それを指摘して失敗する。複数�
 test("引数がなければ使い方を出して 2 を返す", () => {
   assert.equal(run([], { log: () => {}, canonicalSource }), 2);
 });
+
+test("壊れた設定 JSON はそのリポジトリの問題として示し、残りのリポジトリも照合する", () => {
+  const broken = repository();
+  writeFileSync(path.join(broken, "harness.config.json"), "{ not json");
+  const { code, output } = check(broken, repository());
+  assert.equal(code, 1);
+  assert.match(output, /harness\.config\.json を JSON として読めない/u);
+  assert.match(output, /✔ harness-drift-/u);
+  assert.match(output, /1件のリポジトリがずれている/u);
+});
