@@ -46,6 +46,19 @@
 
 失敗時の `message` は、症状を隠す方法ではなく根本原因の直し方を書く。エージェントはこの文を読んで修正するため、ここがプロンプトの代わりになる。
 
+### 複製先との版のずれ
+
+複製先の `scripts/harness-check.mjs` は、このリポジトリの正本をそのまま写したものにする。手で直さない。直したいときは正本を直し、全複製先へ写す。
+
+```bash
+node scripts/harness-drift.mjs ../liftlog ../tech-demos ../minori_v2
+```
+
+- 各複製先の `scripts/harness-check.mjs` が正本と同じか（sha256 の先頭12桁を表示）。
+- 各複製先の `harness.config.json` の全ルールが `--self-test` を通るか（`examples.bad` で必ず失敗し、`examples.good` では通る）。
+
+どちらかが外れれば、そのリポジトリを `✖` で示して終了コード 1 を返す。複製先の CI は別のリポジトリを読めない（GitHub Free の private リポジトリで、追加の token を使わない）ため、この照合は複数のリポジトリを並べたセッションで行う。正本を変えた PR では、同じ日に全複製先へ写し、この照合が通ることを確かめる。各複製先は、自分の検証コマンドで `--self-test` を走らせる。
+
 ### 既定のルール（TypeScript / React）
 
 `templates/harness/harness.config.json` を出発点にする。
