@@ -71,6 +71,35 @@ export function scan(root, config) {
   return findings;
 }
 
+function isTextRule(rule) {
+  return rule?.baseline === "text";
+}
+
+export function tally(hits = []) {
+  const byText = {};
+  for (const hit of hits) byText[hit.text] = (byText[hit.text] ?? 0) + 1;
+  return byText;
+}
+
+export function total(allowance) {
+  if (typeof allowance === "number") return allowance;
+  return Object.values(allowance ?? {}).reduce((sum, count) => sum + count, 0);
+}
+
+function compareFile(rule, file, hits, allowance) {
+  if (!isTextRule(rule) || typeof allowance !== "object") {
+    const limit = allowance ?? 0;
+    if (hits.length > limit) return { regression: { rule, file, hits, limit } };
+    return {};
+  }
+  const actual = tally(hits);
+  const excess = Object.entries(actual).filter(([text, count]) => count > (allowance[text] ?? 0)).map(([text, count]) => [text, count - (allowance[text] ?? 0)]);
+  if (excess.length === 0) return {};
+  const unexpected = new Set(excess.map(([text]) => text));
+  const extra = excess.reduce((sum, [, count]) => sum + count, 0);
+  return { regression: { rule, file, hits: hits.filter((hit) => unexpected.has(hit.text)), limit: total(allowance), byText: true, extra } };
+}
+
 export function compare(config, findings, baseline) {
   const regressions = [];
   const improvements = [];
@@ -78,36 +107,74 @@ export function compare(config, findings, baseline) {
     const actual = findings[rule.id] ?? {};
     const allowed = baseline[rule.id] ?? {};
     for (const [file, hits] of Object.entries(actual)) {
-      const limit = allowed[file] ?? 0;
-      if (hits.length > limit) regressions.push({ rule, file, hits, limit });
+      const { regression } = compareFile(rule, file, hits, allowed[file]);
+      if (regression) regressions.push(regression);
     }
-    for (const [file, limit] of Object.entries(allowed)) {
-      const count = actual[file]?.length ?? 0;
-      if (count < limit) improvements.push({ rule, file, count, limit });
+    for (const [file, allowance] of Object.entries(allowed)) {
+      const hits = actual[file] ?? [];
+      if (typeof allowance === "object") {
+        const counts = tally(hits);
+        const shrunk = Object.entries(allowance).some(([text, limit]) => (counts[text] ?? 0) < limit);
+        if (shrunk) improvements.push({ rule, file, count: Math.min(hits.length, total(allowance)), limit: total(allowance) });
+      } else if (hits.length < allowance) {
+        improvements.push({ rule, file, count: hits.length, limit: allowance });
+      }
     }
   }
   return { regressions, improvements };
 }
 
-export function countsOf(findings) {
+export function countsOf(findings, config = { rules: [] }) {
   const counts = {};
   for (const [ruleId, files] of Object.entries(findings)) {
-    for (const [file, hits] of Object.entries(files)) (counts[ruleId] ??= {})[file] = hits.length;
+    const rule = config.rules.find((candidate) => candidate.id === ruleId);
+    for (const [file, hits] of Object.entries(files)) (counts[ruleId] ??= {})[file] = isTextRule(rule) ? tally(hits) : hits.length;
   }
   return counts;
 }
 
 export function prune(baseline, findings) {
-  const actual = countsOf(findings);
   const next = baseline.adopted ? { adopted: baseline.adopted } : {};
   for (const [ruleId, files] of Object.entries(baseline)) {
     if (ruleId === "adopted") continue;
-    for (const [file, limit] of Object.entries(files)) {
-      const count = Math.min(limit, actual[ruleId]?.[file] ?? 0);
-      if (count > 0) (next[ruleId] ??= {})[file] = count;
+    for (const [file, allowance] of Object.entries(files)) {
+      const hits = findings[ruleId]?.[file] ?? [];
+      if (typeof allowance === "object") {
+        const counts = tally(hits);
+        const kept = Object.fromEntries(Object.entries(allowance)
+          .map(([text, limit]) => [text, Math.min(limit, counts[text] ?? 0)])
+          .filter(([, count]) => count > 0));
+        if (Object.keys(kept).length > 0) (next[ruleId] ??= {})[file] = kept;
+      } else {
+        const count = Math.min(allowance, hits.length);
+        if (count > 0) (next[ruleId] ??= {})[file] = count;
+      }
     }
   }
   return next;
+}
+
+export function migrateToText(rule, baseline, findings) {
+  const refused = [];
+  const files = baseline[rule.id] ?? {};
+  const migrated = {};
+  for (const [file, hits] of Object.entries(findings[rule.id] ?? {})) {
+    if (!Object.hasOwn(files, file)) refused.push(`${file}: ${hits.length} found, none allowed`);
+  }
+  for (const [file, allowance] of Object.entries(files)) {
+    const hits = findings[rule.id]?.[file] ?? [];
+    if (hits.length > total(allowance)) refused.push(`${file}: ${hits.length} found, ${total(allowance)} allowed`);
+    else if (hits.length > 0) migrated[file] = tally(hits);
+  }
+  return { refused, migrated };
+}
+
+export function rewriteFile(rule, baseline, findings, file) {
+  const allowance = baseline[rule.id]?.[file];
+  const hits = findings[rule.id]?.[file] ?? [];
+  if (typeof allowance !== "object") return { refused: `${file} has no text baseline for ${rule.id}. Run --migrate-text ${rule.id} first.` };
+  if (hits.length > total(allowance)) return { refused: `${file}: ${hits.length} found, ${total(allowance)} allowed. A rewrite never raises the count.` };
+  return { allowance: tally(hits), before: allowance };
 }
 
 export function selfTest(config) {
@@ -148,6 +215,15 @@ function parseArguments(argv) {
       options.rule = argv[(index += 1)];
     }
     else if (argument === "--self-test") options.mode = "self-test";
+    else if (argument === "--migrate-text") {
+      options.mode = "migrate-text";
+      options.rule = argv[(index += 1)];
+    }
+    else if (argument === "--rewrite") {
+      options.mode = "rewrite";
+      options.rule = argv[(index += 1)];
+      options.file = argv[(index += 1)];
+    }
     else throw new Error(`Unknown argument: ${argument}`);
   }
   return options;
@@ -174,7 +250,7 @@ export function run(argv, log = console.log) {
       log(`harness: ${options.baseline} already exists. Use --prune to shrink it; the baseline never grows.`);
       return 1;
     }
-    writeJson(baselinePath, { adopted: config.rules.map((rule) => rule.id).toSorted(), ...countsOf(findings) });
+    writeJson(baselinePath, { adopted: config.rules.map((rule) => rule.id).toSorted(), ...countsOf(findings, config) });
     log(`harness: wrote ${options.baseline}.`);
     return 0;
   }
@@ -190,11 +266,43 @@ export function run(argv, log = console.log) {
       log(`harness: rule ${options.rule} is already adopted. The baseline never grows.`);
       return 1;
     }
-    const counts = countsOf(findings)[options.rule];
+    const counts = countsOf(findings, config)[options.rule];
     const next = { ...baseline, adopted: [...(baseline.adopted ?? []), options.rule].toSorted() };
     if (counts) next[options.rule] = counts;
     writeJson(baselinePath, next);
     log(`harness: adopted ${options.rule} with ${Object.keys(counts ?? {}).length} files of existing debt.`);
+    return 0;
+  }
+
+  if (options.mode === "migrate-text" || options.mode === "rewrite") {
+    const rule = config.rules.find((candidate) => candidate.id === options.rule);
+    if (!isTextRule(rule)) {
+      log(`harness: rule ${options.rule} is not a text-baseline rule. Add "baseline": "text" to it in ${options.config} first.`);
+      return 1;
+    }
+    if (options.mode === "migrate-text") {
+      const { refused, migrated } = migrateToText(rule, baseline, findings);
+      if (refused.length > 0) {
+        for (const line of refused) log(`✖ [${rule.id}] ${line}`);
+        log(`harness: fix or prune these files first. The baseline never grows.`);
+        return 1;
+      }
+      writeJson(baselinePath, { ...baseline, [rule.id]: migrated });
+      log(`harness: recorded the text of ${total(Object.values(migrated).reduce((sum, byText) => sum + total(byText), 0))} ${rule.id} findings in ${Object.keys(migrated).length} files.`);
+      return 0;
+    }
+    const { refused, allowance, before } = rewriteFile(rule, baseline, findings, options.file);
+    if (refused) {
+      log(`✖ [${rule.id}] ${refused}`);
+      return 1;
+    }
+    const files = { ...baseline[rule.id] };
+    if (Object.keys(allowance).length > 0) files[options.file] = allowance;
+    else delete files[options.file];
+    writeJson(baselinePath, { ...baseline, [rule.id]: files });
+    for (const text of Object.keys(before)) if (!Object.hasOwn(allowance, text)) log(`  - ${text}`);
+    for (const text of Object.keys(allowance)) if (!Object.hasOwn(before, text)) log(`  + ${text}`);
+    log(`harness: rewrote the ${rule.id} text baseline of ${options.file}. Show this diff in the PR for human review.`);
     return 0;
   }
 
@@ -205,8 +313,9 @@ export function run(argv, log = console.log) {
   }
 
   const { regressions, improvements } = compare(config, findings, baseline);
-  for (const { rule, file, hits, limit } of regressions) {
-    log(`\n✖ [${rule.id}] ${file}: ${hits.length} found, ${limit} allowed by baseline`);
+  for (const { rule, file, hits, limit, byText, extra } of regressions) {
+    if (byText) log(`\n✖ [${rule.id}] ${file}: ${extra} new or rewritten, the baseline allows only its recorded text`);
+    else log(`\n✖ [${rule.id}] ${file}: ${hits.length} found, ${limit} allowed by baseline`);
     for (const hit of hits) log(`    ${file}:${hit.line}  ${hit.text}`);
     log(`  → ${rule.message}`);
   }

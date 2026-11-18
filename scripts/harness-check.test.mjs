@@ -207,3 +207,110 @@ test("self-test matches lines the same way as the scan, even with a g flag", () 
   const rule = { ...timerRule, flags: "g", examples: { bad: ["setTimeout(a, 0);", "setTimeout(b, 0);"], good: ["run();"] } };
   assert.equal(selfTest([rule]).code, 0);
 });
+
+const commentRule = { id: "code-comment", pattern: "//", baseline: "text", message: "move the comment into a name, type or test" };
+
+function textProject(files, rules = [commentRule]) {
+  const root = mkdtempSync(path.join(tmpdir(), "harness-text-"));
+  writeFileSync(path.join(root, "harness.config.json"), JSON.stringify({ include: ["src/**/*.ts"], rules }));
+  for (const [file, content] of Object.entries(files)) {
+    mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
+    writeFileSync(path.join(root, file), content);
+  }
+  return root;
+}
+
+test("a text-baseline rule records each finding's text, not only the count", () => {
+  const root = textProject({ "src/a.ts": "run(); // keep the lease\n// keep the lease\n// retry is safe\n" });
+  assert.equal(check(root, "--init").code, 0);
+  assert.deepEqual(baselineOf(root)["code-comment"], { "src/a.ts": { "run(); // keep the lease": 1, "// keep the lease": 1, "// retry is safe": 1 } });
+  assert.equal(check(root).code, 0);
+});
+
+test("rewriting a kept comment fails even when the count stays the same", () => {
+  const root = textProject({ "src/a.ts": "// retry is safe\nrun();\n" });
+  check(root, "--init");
+  writeFileSync(path.join(root, "src/a.ts"), "// retry is always safe\nrun();\n");
+  const { code, output } = check(root);
+  assert.equal(code, 1);
+  assert.match(output, /\[code-comment\] src\/a\.ts: 1 new or rewritten/);
+  assert.match(output, /src\/a\.ts:1  \/\/ retry is always safe/);
+});
+
+test("moving a kept comment to another line still passes", () => {
+  const root = textProject({ "src/a.ts": "// retry is safe\nrun();\n" });
+  check(root, "--init");
+  writeFileSync(path.join(root, "src/a.ts"), "import { run } from \"./run\";\n\nrun();\n// retry is safe\n");
+  assert.equal(check(root).code, 0);
+});
+
+test("the same text may appear only as many times as recorded", () => {
+  const root = textProject({ "src/a.ts": "// same\n// same\n" });
+  check(root, "--init");
+  writeFileSync(path.join(root, "src/a.ts"), "// same\n// same\n// same\n");
+  assert.match(check(root).output, /1 new or rewritten/);
+});
+
+test("removing a kept comment must be pruned per text, and prune never re-allows a new text", () => {
+  const root = textProject({ "src/a.ts": "// one\n// two\n" });
+  check(root, "--init");
+  writeFileSync(path.join(root, "src/a.ts"), "// one\n");
+  const stale = check(root);
+  assert.equal(stale.code, 1);
+  assert.match(stale.output, /--prune/);
+  writeFileSync(path.join(root, "src/a.ts"), "// one\n// three\n");
+  check(root, "--prune");
+  assert.deepEqual(baselineOf(root)["code-comment"], { "src/a.ts": { "// one": 1 } });
+  assert.match(check(root).output, /1 new or rewritten/);
+});
+
+test("migrate-text turns a count baseline into a text baseline without raising any limit", () => {
+  const root = textProject({ "src/a.ts": "// one\n// two\n", "src/b.ts": "// three\n" });
+  writeFileSync(path.join(root, "harness-baseline.json"), JSON.stringify({ adopted: ["code-comment"], "code-comment": { "src/a.ts": 2, "src/b.ts": 1 } }));
+  assert.equal(check(root).code, 0);
+  assert.equal(check(root, "--migrate-text", "code-comment").code, 0);
+  assert.deepEqual(baselineOf(root)["code-comment"], { "src/a.ts": { "// one": 1, "// two": 1 }, "src/b.ts": { "// three": 1 } });
+  assert.deepEqual(baselineOf(root).adopted, ["code-comment"]);
+});
+
+test("migrate-text refuses when a file is over its count or has no allowance", () => {
+  const over = textProject({ "src/a.ts": "// one\n// two\n" });
+  writeFileSync(path.join(over, "harness-baseline.json"), JSON.stringify({ adopted: ["code-comment"], "code-comment": { "src/a.ts": 1 } }));
+  const result = check(over, "--migrate-text", "code-comment");
+  assert.equal(result.code, 1);
+  assert.match(result.output, /src\/a\.ts: 2 found, 1 allowed/);
+  assert.deepEqual(baselineOf(over)["code-comment"], { "src/a.ts": 1 });
+
+  const unlisted = textProject({ "src/a.ts": "// one\n" });
+  writeFileSync(path.join(unlisted, "harness-baseline.json"), JSON.stringify({ adopted: ["code-comment"], "code-comment": {} }));
+  assert.match(check(unlisted, "--migrate-text", "code-comment").output, /src\/a\.ts: 1 found, none allowed/);
+});
+
+test("migrate-text and rewrite only work on rules marked as text baselines", () => {
+  const root = textProject({ "src/a.ts": "// one\n" }, [{ ...commentRule, baseline: undefined }]);
+  check(root, "--init");
+  assert.match(check(root, "--migrate-text", "code-comment").output, /not a text-baseline rule/);
+  assert.match(check(root, "--rewrite", "code-comment", "src/a.ts").output, /not a text-baseline rule/);
+});
+
+test("rewrite replaces one file's recorded text once, shows the diff, and never raises the count", () => {
+  const root = textProject({ "src/a.ts": "// retry is safe\n" });
+  check(root, "--init");
+  writeFileSync(path.join(root, "src/a.ts"), "// retry is safe because DELETE is guarded\n");
+  assert.equal(check(root).code, 1);
+  const rewrite = check(root, "--rewrite", "code-comment", "src/a.ts");
+  assert.equal(rewrite.code, 0);
+  assert.match(rewrite.output, /- \/\/ retry is safe\n/);
+  assert.match(rewrite.output, /\+ \/\/ retry is safe because DELETE is guarded/);
+  assert.equal(check(root).code, 0);
+
+  writeFileSync(path.join(root, "src/a.ts"), "// first\n// second\n");
+  const grown = check(root, "--rewrite", "code-comment", "src/a.ts");
+  assert.equal(grown.code, 1);
+  assert.match(grown.output, /2 found, 1 allowed\. A rewrite never raises the count/);
+});
+
+test("the template marks code-comment, and only code-comment, as a text baseline", () => {
+  const template = JSON.parse(readFileSync(new URL("../templates/harness/harness.config.json", import.meta.url), "utf8"));
+  assert.deepEqual(template.rules.filter((rule) => rule.baseline === "text").map((rule) => rule.id), ["code-comment"]);
+});
