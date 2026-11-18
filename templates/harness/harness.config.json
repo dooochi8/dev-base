@@ -126,7 +126,8 @@
           "const url = \"https://example.com/api\";",
           "const total = sum(items);"
         ]
-      }
+      },
+      "baseline": "text"
     }
   ]
 }
