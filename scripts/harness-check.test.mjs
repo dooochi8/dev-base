@@ -315,3 +315,15 @@ test("the template marks code-comment, and only code-comment, as a text baseline
   const template = JSON.parse(readFileSync(new URL("../templates/harness/harness.config.json", import.meta.url), "utf8"));
   assert.deepEqual(template.rules.filter((rule) => rule.baseline === "text").map((rule) => rule.id), ["code-comment"]);
 });
+
+test("migrate-text runs once: a text baseline cannot be re-migrated to launder a rewrite", () => {
+  const root = textProject({ "src/a.ts": "// retry is safe\n" });
+  writeFileSync(path.join(root, "harness-baseline.json"), JSON.stringify({ adopted: ["code-comment"], "code-comment": { "src/a.ts": 1 } }));
+  assert.equal(check(root, "--migrate-text", "code-comment").code, 0);
+  writeFileSync(path.join(root, "src/a.ts"), "// anything goes\n");
+  const again = check(root, "--migrate-text", "code-comment");
+  assert.equal(again.code, 1);
+  assert.match(again.output, /already records text/);
+  assert.deepEqual(baselineOf(root)["code-comment"], { "src/a.ts": { "// retry is safe": 1 } });
+  assert.equal(check(root).code, 1);
+});

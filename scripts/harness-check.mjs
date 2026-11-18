@@ -157,6 +157,10 @@ export function prune(baseline, findings) {
 export function migrateToText(rule, baseline, findings) {
   const refused = [];
   const files = baseline[rule.id] ?? {};
+  const alreadyText = Object.entries(files).filter(([, allowance]) => typeof allowance === "object").map(([file]) => file);
+  if (alreadyText.length > 0) {
+    return { refused: alreadyText.map((file) => `${file} already records text. Migration runs once; use --rewrite ${rule.id} <file> to change recorded text.`), migrated: {} };
+  }
   const migrated = {};
   for (const [file, hits] of Object.entries(findings[rule.id] ?? {})) {
     if (!Object.hasOwn(files, file)) refused.push(`${file}: ${hits.length} found, none allowed`);
