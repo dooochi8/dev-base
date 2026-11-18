@@ -235,6 +235,7 @@ test("rewriting a kept comment fails even when the count stays the same", () => 
   assert.equal(code, 1);
   assert.match(output, /\[code-comment\] src\/a\.ts: 1 new or rewritten/);
   assert.match(output, /src\/a\.ts:1  \/\/ retry is always safe/);
+  assert.match(output, /▲ \[code-comment\] src\/a\.ts: 1 recorded text no longer found/);
 });
 
 test("moving a kept comment to another line still passes", () => {

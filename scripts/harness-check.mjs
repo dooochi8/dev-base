@@ -114,8 +114,8 @@ export function compare(config, findings, baseline) {
       const hits = actual[file] ?? [];
       if (typeof allowance === "object") {
         const counts = tally(hits);
-        const shrunk = Object.entries(allowance).some(([text, limit]) => (counts[text] ?? 0) < limit);
-        if (shrunk) improvements.push({ rule, file, count: Math.min(hits.length, total(allowance)), limit: total(allowance) });
+        const missing = Object.entries(allowance).reduce((sum, [text, limit]) => sum + Math.max(0, limit - (counts[text] ?? 0)), 0);
+        if (missing > 0) improvements.push({ rule, file, count: hits.length, limit: total(allowance), missing });
       } else if (hits.length < allowance) {
         improvements.push({ rule, file, count: hits.length, limit: allowance });
       }
@@ -319,8 +319,9 @@ export function run(argv, log = console.log) {
     for (const hit of hits) log(`    ${file}:${hit.line}  ${hit.text}`);
     log(`  → ${rule.message}`);
   }
-  for (const { rule, file, count, limit } of improvements) {
-    log(`\n▲ [${rule.id}] ${file}: ${count} found, baseline still allows ${limit}`);
+  for (const { rule, file, count, limit, missing } of improvements) {
+    if (missing !== undefined) log(`\n▲ [${rule.id}] ${file}: ${missing} recorded text no longer found`);
+    else log(`\n▲ [${rule.id}] ${file}: ${count} found, baseline still allows ${limit}`);
   }
   if (improvements.length > 0) {
     log(`\nRun the harness check with --prune to lock in the improvement.`);
