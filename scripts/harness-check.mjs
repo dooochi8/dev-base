@@ -46,10 +46,26 @@ export function listFiles(root, config) {
     .toSorted();
 }
 
-function occurrences(rule) {
+function matchesOf(rule) {
   const flags = rule.flags ?? "";
   const pattern = new RegExp(rule.pattern, flags.includes("g") ? flags : `${flags}g`);
-  return (line) => [...line.matchAll(pattern)].filter((match) => match[0].length > 0).length;
+  return (line) => [...line.matchAll(pattern)].filter((match) => match[0].length > 0);
+}
+
+function occurrences(rule) {
+  const matches = matchesOf(rule);
+  return (line) => matches(line).length;
+}
+
+export function commentAt(line, index) {
+  const rest = line.slice(index);
+  const start = rest.search(/\/\/|\/\*|\*/);
+  const comment = (start === -1 ? rest : rest.slice(start)).trim();
+  if (comment.startsWith("/*")) {
+    const end = comment.indexOf("*/");
+    if (end !== -1) return comment.slice(0, end + 2);
+  }
+  return comment;
 }
 
 export function scan(root, config) {
@@ -59,11 +75,14 @@ export function scan(root, config) {
     for (const rule of config.rules) {
       if (rule.include && !matchesAny(file, rule.include)) continue;
       if (matchesAny(file, rule.allow) || matchesAny(file, rule.exclude)) continue;
-      const count = occurrences(rule);
+      const matchesIn = matchesOf(rule);
       const hits = [];
       lines.forEach((line, index) => {
-        const matches = count(line);
-        for (let hit = 0; hit < matches; hit += 1) hits.push({ line: index + 1, text: line.trim() });
+        for (const match of matchesIn(line)) {
+          const hit = { line: index + 1, text: line.trim() };
+          if (isTextRule(rule)) hit.key = commentAt(line, match.index);
+          hits.push(hit);
+        }
       });
       if (hits.length > 0) (findings[rule.id] ??= {})[file] = hits;
     }
@@ -77,7 +96,7 @@ function isTextRule(rule) {
 
 export function tally(hits = []) {
   const byText = {};
-  for (const hit of hits) byText[hit.text] = (byText[hit.text] ?? 0) + 1;
+  for (const hit of hits) byText[hit.key ?? hit.text] = (byText[hit.key ?? hit.text] ?? 0) + 1;
   return byText;
 }
 
@@ -97,7 +116,7 @@ function compareFile(rule, file, hits, allowance) {
   if (excess.length === 0) return {};
   const unexpected = new Set(excess.map(([text]) => text));
   const extra = excess.reduce((sum, [, count]) => sum + count, 0);
-  return { regression: { rule, file, hits: hits.filter((hit) => unexpected.has(hit.text)), limit: total(allowance), byText: true, extra } };
+  return { regression: { rule, file, hits: hits.filter((hit) => unexpected.has(hit.key ?? hit.text)), limit: total(allowance), byText: true, extra } };
 }
 
 export function compare(config, findings, baseline) {

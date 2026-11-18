@@ -223,7 +223,7 @@ function textProject(files, rules = [commentRule]) {
 test("a text-baseline rule records each finding's text, not only the count", () => {
   const root = textProject({ "src/a.ts": "run(); // keep the lease\n// keep the lease\n// retry is safe\n" });
   assert.equal(check(root, "--init").code, 0);
-  assert.deepEqual(baselineOf(root)["code-comment"], { "src/a.ts": { "run(); // keep the lease": 1, "// keep the lease": 1, "// retry is safe": 1 } });
+  assert.deepEqual(baselineOf(root)["code-comment"], { "src/a.ts": { "// keep the lease": 2, "// retry is safe": 1 } });
   assert.equal(check(root).code, 0);
 });
 
@@ -326,4 +326,14 @@ test("migrate-text runs once: a text baseline cannot be re-migrated to launder a
   assert.match(again.output, /already records text/);
   assert.deepEqual(baselineOf(root)["code-comment"], { "src/a.ts": { "// retry is safe": 1 } });
   assert.equal(check(root).code, 1);
+});
+
+test("an inline comment is recorded by its comment text, so changing only the code on that line passes", () => {
+  const root = textProject({ "src/a.ts": "run(); // keep the lease\nconst x = /* inline */ 1;\n" }, [{ ...commentRule, pattern: "\\s//\\s|[\\s(,=]/\\*" }]);
+  check(root, "--init");
+  assert.deepEqual(baselineOf(root)["code-comment"], { "src/a.ts": { "// keep the lease": 1, "/* inline */": 1 } });
+  writeFileSync(path.join(root, "src/a.ts"), "await runAll(); // keep the lease\nconst y = /* inline */ 2;\n");
+  assert.equal(check(root).code, 0, check(root).output);
+  writeFileSync(path.join(root, "src/a.ts"), "await runAll(); // keep the lease forever\nconst y = /* inline */ 2;\n");
+  assert.match(check(root).output, /1 new or rewritten/);
 });
