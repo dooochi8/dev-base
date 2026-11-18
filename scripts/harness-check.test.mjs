@@ -337,3 +337,11 @@ test("an inline comment is recorded by its comment text, so changing only the co
   writeFileSync(path.join(root, "src/a.ts"), "await runAll(); // keep the lease forever\nconst y = /* inline */ 2;\n");
   assert.match(check(root).output, /1 new or rewritten/);
 });
+
+test("a block comment that closes on a continuation line is recorded up to its closing delimiter", () => {
+  const root = textProject({ "src/a.ts": "/**\n * explanation */ run();\n" }, [{ ...commentRule, pattern: "^\\s*(\\/\\*|\\*)" }]);
+  check(root, "--init");
+  assert.deepEqual(baselineOf(root)["code-comment"], { "src/a.ts": { "/**": 1, "* explanation */": 1 } });
+  writeFileSync(path.join(root, "src/a.ts"), "/**\n * explanation */ await runAll();\n");
+  assert.equal(check(root).code, 0, check(root).output);
+});

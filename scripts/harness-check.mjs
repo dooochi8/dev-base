@@ -61,7 +61,7 @@ export function commentAt(line, index) {
   const rest = line.slice(index);
   const start = rest.search(/\/\/|\/\*|\*/);
   const comment = (start === -1 ? rest : rest.slice(start)).trim();
-  if (comment.startsWith("/*")) {
+  if (comment.startsWith("/*") || comment.startsWith("*")) {
     const end = comment.indexOf("*/");
     if (end !== -1) return comment.slice(0, end + 2);
   }
